@@ -14,8 +14,13 @@ runs each `bin/` script with its own bash.
   hooks `git sb` into the PowerShell profile.
 - **Update and uninstall** the README covers both systems.
 
+With `core.autocrlf=true`, the Git for Windows default, git checks the scripts
+out with CRLF line endings. Bash then fails on `set -euo pipefail\r`.
+
 ## Changes
 
+- **`.gitattributes`** new. Keeps LF line endings in the checkout on every
+  system.
 - **`install.ps1`** new. Checks the git version, offers to drop a clashing
   `[alias]` section, sets `gitaliases.dir` and `include.path`, offers to
   source `shell/git-sb.ps1` from `$PROFILE`, sets `core.hooksPath`, runs
@@ -30,8 +35,9 @@ runs each `bin/` script with its own bash.
 ## Steps, in commit order
 
 1. This plan.
-2. `shell/git-sb.ps1`, `install.ps1` and the lint check.
-3. README and changelog.
+2. `.gitattributes`.
+3. `shell/git-sb.ps1`, `install.ps1` and the lint check.
+4. README and changelog.
 
 ## Docs to update
 
