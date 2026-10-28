@@ -12,7 +12,7 @@ at them.
 One command:
 
 ```sh
-git clone git@github.com:oleg-chibikov/git-aliases.git ~/.git-aliases && ~/.git-aliases/install.sh
+git clone git@github.com:workbench-soft/git-aliases.git ~/.git-aliases && ~/.git-aliases/install.sh
 ```
 
 Clone wherever you like, the path gets recorded. `install.sh` asks before every
