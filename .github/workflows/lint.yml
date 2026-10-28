@@ -4,15 +4,26 @@ on:
   push:
   pull_request:
 
+# Windows runs steps in PowerShell unless told otherwise.
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  # The repo is private, so this job runs on the Mac for 0 minutes.
+  # The repo is private, so this job runs on the dev machine for 0 minutes:
+  # the Mac or the Windows PC, whichever is on.
   lint:
-    runs-on: [self-hosted, macOS]
+    runs-on: [self-hosted, local]
     steps:
       - uses: actions/checkout@v5
       - name: Install shfmt and shellcheck
         run: |
-          command -v shfmt || brew install shfmt
-          command -v shellcheck || brew install shellcheck
+          if [ "$RUNNER_OS" = macOS ]; then
+            command -v shfmt || brew install shfmt
+            command -v shellcheck || brew install shellcheck
+          else
+            command -v shfmt || winget.exe install --id mvdan.shfmt --exact --silent --accept-source-agreements --accept-package-agreements
+            command -v shellcheck || winget.exe install --id koalaman.shellcheck --exact --silent --accept-source-agreements --accept-package-agreements
+          fi
       - run: ./lint.sh
       - run: ./test.sh
