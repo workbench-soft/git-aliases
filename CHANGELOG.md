@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Spec dates for 2026 moved back one year, to 2025.
+
 - **CI** runs on whichever dev machine is on, the Mac or the Windows PC.
 
 - **Moved** the repo is private in `workbench-soft` now. The install clones from the new owner. CI runs on the Mac runner.
