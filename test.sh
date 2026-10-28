@@ -4,8 +4,18 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")" && pwd)
+windows=no
+case $(uname -s) in
+	MINGW* | MSYS* | CYGWIN*) windows=yes ;;
+esac
+
 tmp=$(mktemp -d)
-tmp=$(cd "$tmp" && pwd -P)
+# On Windows git prints C:/... paths, so the checks compare against those.
+if [ "$windows" = yes ]; then
+	tmp=$(cd "$tmp" && pwd -W)
+else
+	tmp=$(cd "$tmp" && pwd -P)
+fi
 trap 'rm -rf "$tmp"' EXIT
 
 checks=0
@@ -149,19 +159,20 @@ has 'git dbm finds nothing to delete' 'No deletable branches or worktrees with a
 # shellcheck source=bin/_lib.sh
 . "$root/bin/_lib.sh"
 
+# The stubs read test_dir: on Windows an exported tmp collides with TMP.
 confirm() {
-	printf '%s\n' "$*" >>"$tmp/confirmations"
+	printf '%s\n' "$*" >>"$test_dir/confirmations"
 	[ "${delete_answer:-no}" = yes ]
 }
 
 fzf() {
 	local input
 	input=$(cat)
-	printf '%s\n' "$input" >"$tmp/picker"
+	printf '%s\n' "$input" >"$test_dir/picker"
 	printf '%s\n' "$input" | awk -F'\t' 'index("\n" ENVIRON["pick_branch"] "\n", "\n" $1 "\n")'
 }
 export -f fzf
-export tmp
+export test_dir=$tmp
 
 git branch delete-plain
 git worktree add -q -b delete-clean "$tmp/clean worktree"
@@ -170,7 +181,10 @@ git worktree add -q -b delete-locked "$tmp/locked"
 git worktree lock "$tmp/locked"
 git worktree add -q --detach "$tmp/detached"
 git worktree add -q -b delete-missing "$tmp/missing"
-git worktree add -q -b delete-odd "$tmp/odd"$'\t\n'"path"
+# Windows folder names can't hold a tab or a newline.
+if [ "$windows" = no ]; then
+	git worktree add -q -b delete-odd "$tmp/odd"$'\t\n'"path"
+fi
 git config branch.delete-clean.description 'private branch setting'
 clean_gitdir=$(git -C "$tmp/clean worktree" rev-parse --absolute-git-dir)
 echo dirty >>"$tmp/dirty/file.txt"
@@ -298,7 +312,9 @@ load_deletion_worktrees
 selected=$(deletion_candidates all | awk -F'\t' '$3 ~ /^\[worktree detached\]/ || $1 == "delete-odd"')
 delete_candidates "$selected" >"$tmp/delete-output" 2>&1
 is 'detached worktree folder is removed' no "$([ -e "$tmp/detached" ] && echo yes || echo no)"
-is 'paths with tabs and newlines are removed exactly' no "$([ -e "$tmp/odd"$'\t\n'"path" ] && echo yes || echo no)"
+if [ "$windows" = no ]; then
+	is 'paths with tabs and newlines are removed exactly' no "$([ -e "$tmp/odd"$'\t\n'"path" ] && echo yes || echo no)"
+fi
 is 'deleting a detached worktree keeps the current branch' main "$(git b)"
 
 rm "$tmp/missing/file.txt" "$tmp/missing/.git"

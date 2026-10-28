@@ -18,6 +18,19 @@ fail() {
 	failures=$((failures + 1))
 }
 
+# Windows has no exec bit, so a tracked file is judged by the mode git stores.
+executable() {
+	local mode
+	mode=$(git ls-files --stage -- "$1" | cut -c1-6)
+	if [ -n "$mode" ]; then
+		[ "$mode" = 100755 ]
+	else
+		[ -x "$1" ]
+	fi
+}
+
+chmod_hint='run chmod +x, or on Windows git update-index --chmod=+x'
+
 # --- aliases.gitconfig ------------------------------------------------------
 
 names=()
@@ -63,7 +76,7 @@ done <"$config"
 script_count=0
 for script in bin/git-*; do
 	script_count=$((script_count + 1))
-	[ -x "$script" ] || fail "$script: not executable, run chmod +x"
+	executable "$script" || fail "$script: not executable, $chmod_hint"
 
 	first=$(head -n 1 "$script")
 	[ "$first" = '#!/usr/bin/env bash' ] || fail "$script: first line must be #!/usr/bin/env bash"
@@ -86,10 +99,10 @@ for script in bin/git-*; do
 	[ "$found" = 1 ] || fail "$script: no alias in $config runs it"
 done
 
-[ ! -x bin/_lib.sh ] || fail 'bin/_lib.sh: sourced, not run, so it should not be executable'
+! executable bin/_lib.sh || fail 'bin/_lib.sh: sourced, not run, so it should not be executable'
 
 for script in install.sh lint.sh test.sh hooks/pre-commit; do
-	[ -x "$script" ] || fail "$script: not executable, run chmod +x"
+	executable "$script" || fail "$script: not executable, $chmod_hint"
 done
 
 # --- README -----------------------------------------------------------------
