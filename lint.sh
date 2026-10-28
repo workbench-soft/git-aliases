@@ -126,6 +126,26 @@ else
 	echo 'skipped shfmt (not installed: brew install shfmt)'
 fi
 
+powershell=''
+for candidate in pwsh powershell; do
+	if command -v "$candidate" >/dev/null 2>&1; then
+		powershell=$candidate
+		break
+	fi
+done
+if [ -n "$powershell" ]; then
+	for script in ./*.ps1 shell/*.ps1; do
+		# shellcheck disable=SC2016  # PowerShell expands these, bash must not
+		ps1_file=$script "$powershell" -NoProfile -Command '$errors = $null
+			$path = (Resolve-Path -LiteralPath $env:ps1_file).Path
+			[void][System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$null, [ref]$errors)
+			$errors | ForEach-Object { "$($_.Extent.StartLineNumber): $($_.Message)" }
+			exit $errors.Count' || fail "$script: PowerShell can't parse it"
+	done
+else
+	echo 'skipped the PowerShell parse (not installed: brew install powershell)'
+fi
+
 # ----------------------------------------------------------------------------
 
 if [ "$failures" -gt 0 ]; then
