@@ -5,14 +5,14 @@ on:
   pull_request:
 
 jobs:
+  # The repo is private, so this job runs on the Mac for 0 minutes.
   lint:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS]
     steps:
       - uses: actions/checkout@v5
-      - name: Install shfmt
+      - name: Install shfmt and shellcheck
         run: |
-          curl -fsSL -o /usr/local/bin/shfmt \
-            https://github.com/mvdan/sh/releases/download/v3.10.0/shfmt_v3.10.0_linux_amd64
-          chmod +x /usr/local/bin/shfmt
+          command -v shfmt || brew install shfmt
+          command -v shellcheck || brew install shellcheck
       - run: ./lint.sh
       - run: ./test.sh
