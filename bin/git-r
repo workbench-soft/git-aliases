@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Fetch and rebase onto the default branch.
+# -c rebases onto the upstream of the current branch, or pass a branch name.
+set -euo pipefail
+# shellcheck source=bin/_lib.sh
+. "$(dirname "$0")/_lib.sh"
+
+remote=$(default_remote)
+
+args='[-c | <branch>]'
+notes=(
+	'no arguments  rebase onto the default branch of the remote'
+	'-c            rebase onto the upstream of the current branch'
+	'<branch>      rebase onto that branch on the remote'
+)
+
+case ${1:-} in
+	-h | --help) usage "$args" "${notes[@]}" ;;
+	-c) target='@{u}' ;;
+	'') target="$remote/$(default_branch "$remote")" ;;
+	-*)
+		printf 'unknown flag: %s\n\n' "$1" >&2
+		usage "$args" "${notes[@]}"
+		;;
+	*) target="$remote/$1" ;;
+esac
+
+run git fetch "$remote"
+run git rebase "$target"

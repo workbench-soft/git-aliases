@@ -1,0 +1,29 @@
+# Every alias points at a script in bin/. The path comes from gitaliases.dir,
+# which install.sh sets, so the repo can live anywhere.
+#
+# The shape of each line is fixed and lint.sh checks it:
+#
+#	<name> = "!\"$(git config gitaliases.dir)\"/bin/git-<script>"
+#
+# Git appends the user's arguments to that command, so the script sees them as
+# "$@". Names stay sorted. Several names may share one script.
+
+[alias]
+	a = "!\"$(git config gitaliases.dir)\"/bin/git-a"
+	b = "!\"$(git config gitaliases.dir)\"/bin/git-b"
+	c = "!\"$(git config gitaliases.dir)\"/bin/git-c"
+	cb = "!\"$(git config gitaliases.dir)\"/bin/git-cb"
+	co = "!\"$(git config gitaliases.dir)\"/bin/git-co"
+	cp = "!\"$(git config gitaliases.dir)\"/bin/git-cp"
+	db = "!\"$(git config gitaliases.dir)\"/bin/git-db"
+	dbm = "!\"$(git config gitaliases.dir)\"/bin/git-dbm"
+	hr = "!\"$(git config gitaliases.dir)\"/bin/git-hr"
+	last = "!\"$(git config gitaliases.dir)\"/bin/git-last"
+	m = "!\"$(git config gitaliases.dir)\"/bin/git-master"
+	main = "!\"$(git config gitaliases.dir)\"/bin/git-master"
+	master = "!\"$(git config gitaliases.dir)\"/bin/git-master"
+	p = "!\"$(git config gitaliases.dir)\"/bin/git-p"
+	r = "!\"$(git config gitaliases.dir)\"/bin/git-r"
+	sb = "!\"$(git config gitaliases.dir)\"/bin/git-sb"
+	sr1 = "!\"$(git config gitaliases.dir)\"/bin/git-sr1"
+	srmb = "!\"$(git config gitaliases.dir)\"/bin/git-srmb"

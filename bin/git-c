@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Commit: non-flag arguments are joined into the message, flags go to git commit.
+# Everything after -- is message, even if it starts with a dash.
+set -euo pipefail
+# shellcheck source=bin/_lib.sh
+. "$(dirname "$0")/_lib.sh"
+
+opts=()
+message=()
+rest_is_message=0
+
+args='[git commit flags] [--] <message>'
+notes=(
+	'flags are passed straight to git commit, say --amend or --no-verify'
+	'-- makes everything after it message, even if it starts with a dash'
+)
+
+for arg in "$@"; do
+	if [ "$rest_is_message" = 1 ]; then
+		message+=("$arg")
+		continue
+	fi
+	case $arg in
+		-h | --help) usage "$args" "${notes[@]}" ;;
+		--) rest_is_message=1 ;;
+		-*) opts+=("$arg") ;;
+		*) message+=("$arg") ;;
+	esac
+done
+
+[ ${#message[@]} -gt 0 ] || usage "$args" "${notes[@]}"
+
+run git commit ${opts[@]+"${opts[@]}"} -m "${message[*]}"
