@@ -9,49 +9,74 @@ at them.
 
 ## Install
 
-One command:
+Clone the repo wherever you like, then run the installer for your system. The
+installer records the path, so the aliases run straight from the checkout.
+
+Both installers ask before every change. Each file they edit gets a copy at
+`<file>.bak.<timestamp>` first. Answer no to everything and only the git config
+steps run. Run them again any time.
+
+What both installers do:
+
+- **Git config** sets `gitaliases.dir` and `include.path` in `~/.gitconfig`.
+- **Old aliases** offer to drop an `[alias]` section in `~/.gitconfig`, since
+  its aliases would win over the repo.
+- **`git sb`** offer to load a shell function that lets `git sb` change
+  directory. [Why it needs one](#why-git-sb-needs-a-shell-function).
+- **Hooks** point `core.hooksPath` at [hooks/](hooks), so commits here get
+  linted.
+- **Check** warn if git is older than 2.22, then run `git a` to prove the
+  install works.
+
+### macOS and Linux
 
 ```sh
 git clone git@github.com:workbench-soft/git-aliases.git ~/.git-aliases && ~/.git-aliases/install.sh
 ```
 
-Clone wherever you like, the path gets recorded. `install.sh` asks before every
-change, copies any file it edits to `<file>.bak.<timestamp>` first, and only
-ever appends to `~/.zshrc`. Answer no to everything and it changes nothing. Run
-it again any time.
+- **Shell** `install.sh` appends a line to `~/.zshrc` that sources
+  [shell/git-sb.zsh](shell/git-sb.zsh).
+- **Old wrapper** if `~/.zshrc` has its own `git()` wrapper, the installer
+  names its line. The old block then stays as dead code for you to delete.
+- **fzf** `git sb` and `git db` need it: `brew install fzf`.
 
-What it asks about:
+### Windows
 
-- sets `gitaliases.dir` and `include.path` in `~/.gitconfig`
-- offers to drop an existing `[alias]` section, which would shadow the repo
-- offers to source [shell/git-sb.zsh](shell/git-sb.zsh) from `~/.zshrc`, which
-  is what lets `git sb` change directory. If `~/.zshrc` already has its own
-  `git()` wrapper it says on which line, and appending the repo version leaves
-  the old block as dead code for you to delete
-- points `core.hooksPath` at [hooks/](hooks) so commits here get linted
-- warns if git is older than 2.22, which `git b` and `git p` need
-- finishes by running `git a`, so a broken install can't pass silently
+Needs [Git for Windows](https://gitforwindows.org): `winget install Git.Git`.
+The aliases run in the bash that comes with it. Run this in PowerShell:
 
-`git sb` and `git db` need fzf:
-
-```sh
-brew install fzf
+```powershell
+git clone git@github.com:workbench-soft/git-aliases.git "$HOME\.git-aliases"; powershell -ExecutionPolicy Bypass -File "$HOME\.git-aliases\install.ps1"
 ```
 
-To update later:
+- **Shell** `install.ps1` appends a line to `$PROFILE` that dot-sources
+  [shell/git-sb.ps1](shell/git-sb.ps1). Run it from each PowerShell you use,
+  since Windows PowerShell and PowerShell 7 keep separate profiles.
+- **Execution policy** the Windows default, `Restricted`, skips `$PROFILE`. The
+  installer warns about it. To allow it:
+  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+- **fzf** `git sb` and `git db` need it: `winget install junegunn.fzf`.
+- **Line endings** [.gitattributes](.gitattributes) keeps the scripts on LF.
+  Bash fails on the CRLF that Git for Windows checks out by default.
+
+### Update
 
 ```sh
 git -C ~/.git-aliases pull
 ```
 
-No second install step, the aliases run straight from the checkout.
+The same command works in PowerShell. No second install step.
 
 ## Why `git sb` needs a shell function
 
 `git sb` can switch to a branch that lives in another worktree. A git alias runs
 in a subprocess and can't move the parent shell, so it prints `__cd__ <path>`
-and the function in [shell/git-sb.zsh](shell/git-sb.zsh) does the `cd`. It also
-moves the VS Code window, which needs the `code` CLI on PATH: VS Code palette,
+and a shell function does the `cd`:
+
+- **zsh** [shell/git-sb.zsh](shell/git-sb.zsh).
+- **PowerShell** [shell/git-sb.ps1](shell/git-sb.ps1).
+
+The function also moves the VS Code window, which needs the `code` CLI on PATH: VS Code palette,
 "Shell Command: Install 'code'". Setting `"git.detectWorktrees": true` makes VS
 Code list worktrees too.
 
@@ -131,7 +156,8 @@ The default branch comes from `<remote>/HEAD`, falling back to `master` then
    what it does, then `set -euo pipefail`.
 2. Source `bin/_lib.sh` for the shared helpers: `run` (echo a command, then run
    it), `note`, `confirm`, `die`, `require`, `default_branch`, `gone_branches`.
-3. `chmod +x bin/git-<name>`.
+3. `chmod +x bin/git-<name>`. On Windows:
+   `git update-index --add --chmod=+x bin/git-<name>`.
 4. Add a line to `aliases.gitconfig`, keeping the list sorted.
 5. Add a row to the table above.
 6. Add a check to `test.sh` if the alias does something worth pinning down.
@@ -143,10 +169,17 @@ The default branch comes from `<remote>/HEAD`, falling back to `master` then
 ./test.sh   # behaviour: every alias against a throwaway repo
 ```
 
+On Windows run both from Git Bash.
+
 `lint.sh` fails if a script has no description comment, isn't executable, misses
 `set -euo pipefail`, has no alias, has no README row, or if the alias lines
-drift from their fixed shape. With [shellcheck](https://www.shellcheck.net) and
-[shfmt](https://github.com/mvdan/sh) installed it runs those too:
+drift from their fixed shape. On Windows it reads the exec bit from git, since
+NTFS has none.
+
+With [shellcheck](https://www.shellcheck.net) and
+[shfmt](https://github.com/mvdan/sh) installed it runs those too. With
+PowerShell installed it parses the `.ps1` files. To install the tools and fix
+the formatting:
 
 ```sh
 brew install shellcheck shfmt
@@ -154,7 +187,8 @@ shfmt --write --case-indent bin/* ./*.sh hooks/*
 ```
 
 `test.sh` builds a repo and a `HOME` in a temp directory, so it can commit,
-push and reset for real without touching anything of yours.
+push and reset for real without touching anything of yours. On Windows it skips
+the folder name with a tab and a newline, which NTFS rejects.
 
 `install.sh` points `core.hooksPath` at [hooks/](hooks), so the lint runs before
 every commit. GitHub Actions runs both on push.
@@ -163,11 +197,14 @@ every commit. GitHub Actions runs both on push.
 
 ```sh
 git config --global --unset gitaliases.dir
-git config --global --unset include.path "$HOME/.git-aliases/aliases.gitconfig"
+git config --global --unset include.path 'git-aliases.*/aliases\.gitconfig$'
 ```
 
-Then drop the `source .../shell/git-sb.zsh` line from `~/.zshrc` and delete the
-checkout.
+The same commands work in PowerShell. Then:
+
+1. Drop the line that loads `git-sb.zsh` from `~/.zshrc`, or `git-sb.ps1` from
+   `$PROFILE`.
+2. Delete the checkout.
 
 ## License
 
