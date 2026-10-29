@@ -21,13 +21,13 @@ for arg in "$@"; do
 		continue
 	fi
 	case $arg in
-		-h | --help) usage "$args" "${notes[@]}" ;;
+		-h | --help) show_usage "$args" "${notes[@]}" ;;
 		--) rest_is_message=1 ;;
 		-*) opts+=("$arg") ;;
 		*) message+=("$arg") ;;
 	esac
 done
 
-[ ${#message[@]} -gt 0 ] || usage "$args" "${notes[@]}"
+[ ${#message[@]} -gt 0 ] || show_usage "$args" "${notes[@]}"
 
-run git commit ${opts[@]+"${opts[@]}"} -m "${message[*]}"
+trace_run git commit ${opts[@]+"${opts[@]}"} -m "${message[*]}"

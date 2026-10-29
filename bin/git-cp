@@ -26,7 +26,7 @@ for arg in "$@"; do
 		continue
 	fi
 	case $arg in
-		-h | --help) usage "$args" "${notes[@]}" ;;
+		-h | --help) show_usage "$args" "${notes[@]}" ;;
 		--) rest_is_message=1 ;;
 		-f) push_opts+=(--force-with-lease) ;;
 		-p)
@@ -36,24 +36,24 @@ for arg in "$@"; do
 		-s) skip_add=1 ;;
 		-*)
 			printf 'unknown flag: %s\n\n' "$arg" >&2
-			usage "$args" "${notes[@]}"
+			show_usage "$args" "${notes[@]}"
 			;;
 		*) message+=("$arg") ;;
 	esac
 done
 
-[ ${#message[@]} -gt 0 ] || usage "$args" "${notes[@]}"
+[ ${#message[@]} -gt 0 ] || show_usage "$args" "${notes[@]}"
 
-[ -n "$skip_add" ] || run git add -A
+[ -n "$skip_add" ] || trace_run git add -A
 
 if git diff --cached --quiet; then
 	echo 'nothing to commit, pushing anyway'
 else
-	run git commit ${commit_opts[@]+"${commit_opts[@]}"} -m "${message[*]}"
+	trace_run git commit ${commit_opts[@]+"${commit_opts[@]}"} -m "${message[*]}"
 fi
 
 if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
-	run git push ${push_opts[@]+"${push_opts[@]}"}
+	trace_run git push ${push_opts[@]+"${push_opts[@]}"}
 else
-	run git push ${push_opts[@]+"${push_opts[@]}"} -u "$(default_remote)" HEAD
+	trace_run git push ${push_opts[@]+"${push_opts[@]}"} -u "$(pick_remote)" HEAD
 fi

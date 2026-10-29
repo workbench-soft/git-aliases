@@ -6,10 +6,10 @@ set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 config="$root/aliases.gitconfig"
-[ -f "$config" ] || die "no aliases.gitconfig next to $0"
+[ -f "$config" ] || abort "no aliases.gitconfig next to $0"
 
 # The comment block under the shebang of a git-* script.
-description() {
+script_summary() {
 	awk 'NR == 1 {next} /^#/ {sub(/^# ?/, ""); print; next} {exit}' "$1"
 }
 
@@ -20,10 +20,10 @@ render() {
 		name=${name#alias.}
 		value=${entry#*$'\n'}
 		script=${value##*/}
-		printf '%s%-8s%s %sbin/%s%s\n' "$C_CMD" "$name" "$C_RESET" "$C_DIM" "$script" "$C_RESET"
+		printf '%s%-8s%s %sbin/%s%s\n' "$CLR_COMMAND" "$name" "$CLR_OFF" "$CLR_FAINT" "$script" "$CLR_OFF"
 		while IFS= read -r line; do
-			printf '  %s%s%s\n' "$C_NOTE" "$line" "$C_RESET"
-		done < <(description "$root/bin/$script")
+			printf '  %s%s%s\n' "$CLR_HINT" "$line" "$CLR_OFF"
+		done < <(script_summary "$root/bin/$script")
 		printf '\n'
 	done < <(git config --file "$config" --null --get-regexp '^alias\.')
 }

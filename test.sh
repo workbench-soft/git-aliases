@@ -162,7 +162,7 @@ has 'git dbm finds nothing to delete' 'No deletable branches or worktrees with a
 . "$root/bin/_prune.sh"
 
 # The stubs read test_dir: on Windows an exported tmp collides with TMP.
-confirm() {
+ask_yes() {
 	printf '%s\n' "$*" >>"$test_dir/confirmations"
 	[ "${delete_answer:-no}" = yes ]
 }
@@ -198,17 +198,17 @@ echo shared-stash >>file.txt
 git stash push -qm shared-stash
 shared_stash=$(git rev-parse refs/stash)
 
-load_deletion_worktrees
-candidates=$(deletion_candidates all)
+read_worktrees
+candidates=$(prune_candidates all)
 has 'picker labels branches' $'delete-plain\tbranch\t[branch]' "$candidates"
 has 'picker labels worktrees and paths' "[worktree] $tmp/clean worktree" "$candidates"
 has 'picker includes detached worktrees' '[worktree detached]' "$candidates"
 is 'picker excludes locked worktrees' '' "$(printf '%s\n' "$candidates" | grep -F delete-locked || true)"
 is 'picker excludes current branch' '' "$(printf '%s\n' "$candidates" | awk -F'\t' '$1 == "main"')"
-linked_candidates=$(cd "$tmp/dirty" && load_deletion_worktrees && deletion_candidates all)
+linked_candidates=$(cd "$tmp/dirty" && read_worktrees && prune_candidates all)
 is 'picker excludes the main worktree from a linked worktree' '' "$(printf '%s\n' "$linked_candidates" | awk -F'\t' '$1 == "main"')"
 is 'picker excludes the current linked worktree' '' "$(printf '%s\n' "$linked_candidates" | grep -F delete-dirty || true)"
-detached_candidates=$(cd "$tmp/detached" && load_deletion_worktrees && deletion_candidates all)
+detached_candidates=$(cd "$tmp/detached" && read_worktrees && prune_candidates all)
 is 'picker excludes the current detached worktree' '' "$(printf '%s\n' "$detached_candidates" | grep -F '[worktree detached]' || true)"
 
 export pick_branch=$'delete-clean\ndelete-plain'
@@ -221,20 +221,20 @@ is 'git db removes branch reflog' no "$(git reflog exists refs/heads/delete-clea
 has 'git db passes labeled entries to fzf' '[branch]' "$(<"$tmp/picker")"
 is 'git db multi-select also deletes a plain branch' '' "$(git branch --list delete-plain)"
 
-load_deletion_worktrees
-selected=$(deletion_candidates all | awk -F'\t' '$1 == "delete-dirty"')
+read_worktrees
+selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-dirty"')
 # shellcheck disable=SC2016
 refuses 'dirty worktree requires confirmation' 'worktree retained:' bash -c '
 	. "$1/bin/_shared.sh"
 	. "$1/bin/_prune.sh"
-	confirm() { return 1; }
-	load_deletion_worktrees
-	delete_candidates "$2"
+	ask_yes() { return 1; }
+	read_worktrees
+	prune_selected "$2"
 ' bash "$root" "$selected"
 is 'declining keeps dirty files' dirty "$(tail -n 1 "$tmp/dirty/file.txt")"
 has 'declining keeps branch' 'delete-dirty' "$(git branch --list delete-dirty)"
 delete_answer=yes
-delete_candidates "$selected" >"$tmp/delete-output" 2>&1
+prune_selected "$selected" >"$tmp/delete-output" 2>&1
 has 'forced removal warns about data loss' 'including uncommitted and untracked files?' "$(<"$tmp/confirmations")"
 is 'forced removal deletes the folder and ignored files' no "$([ -e "$tmp/dirty" ] && echo yes || echo no)"
 is 'forced removal deletes the branch' '' "$(git branch --list delete-dirty)"
@@ -255,9 +255,9 @@ git worktree add -q -b delete-busy-clean "$tmp/busy-clean"
 busy_path="$tmp/busy-clean"
 : >"$tmp/confirmations"
 delete_answer=no
-load_deletion_worktrees
-selected=$(deletion_candidates all | awk -F'\t' '$1 == "delete-busy-clean"')
-delete_candidates "$selected" >"$tmp/delete-output" 2>&1
+read_worktrees
+selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-busy-clean"')
+prune_selected "$selected" >"$tmp/delete-output" 2>&1
 is 'a clean folder refilled during removal is deleted without asking' '' "$(<"$tmp/confirmations")"
 is 'a clean folder refilled during removal is deleted' no "$([ -e "$tmp/busy-clean" ] && echo yes || echo no)"
 is 'a clean folder refilled during removal loses its branch' '' "$(git branch --list delete-busy-clean)"
@@ -267,9 +267,9 @@ git worktree add -q -b delete-after-busy "$tmp/after-busy"
 echo untracked >"$tmp/busy/untracked.txt"
 busy_path="$tmp/busy"
 delete_answer=yes
-load_deletion_worktrees
-selected=$(deletion_candidates all | awk -F'\t' '$1 == "delete-busy" || $1 == "delete-after-busy"')
-delete_candidates "$selected" >"$tmp/delete-output" 2>&1
+read_worktrees
+selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-busy" || $1 == "delete-after-busy"')
+prune_selected "$selected" >"$tmp/delete-output" 2>&1
 is 'a dirty folder refilled during removal is deleted' no "$([ -e "$tmp/busy" ] && echo yes || echo no)"
 is 'a dirty folder refilled during removal loses its branch' '' "$(git branch --list delete-busy)"
 is 'deletion continues after a refilled folder' '' "$(git branch --list delete-after-busy)"
@@ -284,9 +284,9 @@ rm() {
 	fi
 	command rm "$@"
 }
-load_deletion_worktrees
-selected=$(deletion_candidates all | awk -F'\t' '$1 == "delete-stuck"')
-delete_candidates "$selected" >"$tmp/delete-output" 2>&1
+read_worktrees
+selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-stuck"')
+prune_selected "$selected" >"$tmp/delete-output" 2>&1
 unset -f git rm
 has 'a folder that stays busy gets a warning' "warning: could not delete '$tmp/stuck'" "$(<"$tmp/delete-output")"
 is 'a folder that stays busy still loses its branch' '' "$(git branch --list delete-stuck)"
@@ -296,24 +296,24 @@ git worktree add -q -b order-dirty "$tmp/order-dirty"
 echo untracked >"$tmp/order-dirty/untracked.txt"
 git worktree add -q -b order-clean "$tmp/order-clean"
 git branch order-plain
-load_deletion_worktrees
-selected=$'no-such-branch\tbranch\t[branch]\n'$(deletion_candidates all | awk -F'\t' '$1 ~ /^order-/')
+read_worktrees
+selected=$'no-such-branch\tbranch\t[branch]\n'$(prune_candidates all | awk -F'\t' '$1 ~ /^order-/')
 status=0
 (
-	confirm() {
+	ask_yes() {
 		printf 'clean=%s plain=%s\n' "$([ -e "$tmp/order-clean" ] && echo yes || echo no)" \
 			"$(git branch --list order-plain)" >"$tmp/order-state"
 	}
-	delete_candidates "$selected"
+	prune_selected "$selected"
 ) >"$tmp/delete-output" 2>&1 || status=$?
 is 'questions come after the deletions that need none' 'clean=no plain=' "$(<"$tmp/order-state")"
 is 'a failed entry leaves the rest deleted' '' "$(git branch --list 'order-*')"
 is 'a failed entry makes the command fail' 1 "$status"
 has 'a failed entry is reported' 'branch retained: no-such-branch' "$(<"$tmp/delete-output")"
 
-load_deletion_worktrees
-selected=$(deletion_candidates all | awk -F'\t' '$3 ~ /^\[worktree detached\]/ || $1 == "delete-odd"')
-delete_candidates "$selected" >"$tmp/delete-output" 2>&1
+read_worktrees
+selected=$(prune_candidates all | awk -F'\t' '$3 ~ /^\[worktree detached\]/ || $1 == "delete-odd"')
+prune_selected "$selected" >"$tmp/delete-output" 2>&1
 is 'detached worktree folder is removed' no "$([ -e "$tmp/detached" ] && echo yes || echo no)"
 if [ "$windows" = no ]; then
 	is 'paths with tabs and newlines are removed exactly' no "$([ -e "$tmp/odd"$'\t\n'"path" ] && echo yes || echo no)"
@@ -328,19 +328,19 @@ is 'git db removes a missing worktree registration and branch' '' "$(git branch 
 
 git worktree add -q -b delete-shared "$tmp/shared-a"
 git worktree add -q --force "$tmp/shared-b" delete-shared
-load_deletion_worktrees
-selected=$(deletion_candidates all | awk -F'\t' '$1 == "delete-shared" && !seen++')
-delete_candidates "$selected" >"$tmp/delete-output" 2>&1
+read_worktrees
+selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-shared" && !seen++')
+prune_selected "$selected" >"$tmp/delete-output" 2>&1
 has 'removing one worktree keeps a shared branch' 'delete-shared' "$(git branch --list delete-shared)"
-load_deletion_worktrees
-selected=$(deletion_candidates all | awk -F'\t' '$1 == "delete-shared"')
-delete_candidates "$selected" >"$tmp/delete-output" 2>&1
+read_worktrees
+selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-shared"')
+prune_selected "$selected" >"$tmp/delete-output" 2>&1
 is 'removing the last worktree deletes a shared branch' '' "$(git branch --list delete-shared)"
 
 git worktree add -q -b delete-parent "$tmp/parent"
 git worktree add -q -b delete-child "$tmp/parent/child"
-load_deletion_worktrees
-candidates=$(deletion_candidates all)
+read_worktrees
+candidates=$(prune_candidates all)
 is 'picker protects folders containing another worktree' '' "$(printf '%s\n' "$candidates" | awk -F'\t' '$1 == "delete-parent"')"
 has 'nested worktree can be selected separately' 'delete-child' "$candidates"
 
@@ -353,8 +353,8 @@ for branch in gone-plain gone-worktree delete-locked main; do
 	git push -q origin --delete "upstream-$branch"
 done
 git branch --set-upstream-to=origin/main kept-worktree >/dev/null
-load_deletion_worktrees
-selected=$(deletion_candidates gone)
+read_worktrees
+selected=$(prune_candidates gone)
 has 'dbm candidates include plain branches' $'gone-plain\tbranch\t[branch]' "$selected"
 has 'dbm candidates include worktrees' "[worktree] $tmp/gone" "$selected"
 is 'dbm excludes locked worktrees' '' "$(printf '%s\n' "$selected" | grep -F delete-locked || true)"
@@ -366,7 +366,7 @@ git --git-dir="$tmp/origin.git" update-ref -d refs/heads/prune-only
 # Replace only the terminal prompt in a test copy of the command.
 mkdir -p "$tmp/aliases/bin"
 cp "$root/bin/git-dbm" "$root/bin/_shared.sh" "$root/bin/_prune.sh" "$tmp/aliases/bin/"
-declare -f confirm >>"$tmp/aliases/bin/_prune.sh"
+declare -f ask_yes >>"$tmp/aliases/bin/_prune.sh"
 export delete_answer=yes
 git -c gitaliases.dir="$tmp/aliases" dbm >"$tmp/delete-output" 2>&1
 has 'git dbm displays branch labels' 'gone-plain [branch]' "$(<"$tmp/delete-output")"

@@ -4,8 +4,8 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-remote=$(default_remote)
-target="$remote/$(default_branch "$remote")"
+remote=$(pick_remote)
+target="$remote/$(remote_head_branch "$remote")"
 base=$(git merge-base HEAD "$target")
 
-run git reset --soft "$base"
+trace_run git reset --soft "$base"

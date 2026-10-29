@@ -5,7 +5,7 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-remote=$(default_remote)
+remote=$(pick_remote)
 
 args='[-c | <branch>]'
 notes=(
@@ -15,15 +15,15 @@ notes=(
 )
 
 case ${1:-} in
-	-h | --help) usage "$args" "${notes[@]}" ;;
+	-h | --help) show_usage "$args" "${notes[@]}" ;;
 	-c) target='@{u}' ;;
-	'') target="$remote/$(default_branch "$remote")" ;;
+	'') target="$remote/$(remote_head_branch "$remote")" ;;
 	-*)
 		printf 'unknown flag: %s\n\n' "$1" >&2
-		usage "$args" "${notes[@]}"
+		show_usage "$args" "${notes[@]}"
 		;;
 	*) target="$remote/$1" ;;
 esac
 
-run git fetch "$remote"
-run git rebase "$target"
+trace_run git fetch "$remote"
+trace_run git rebase "$target"

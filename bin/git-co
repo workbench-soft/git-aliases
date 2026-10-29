@@ -10,16 +10,16 @@ notes=(
 )
 
 case ${1:-} in
-	-h | --help) usage "$args" "${notes[@]}" ;;
+	-h | --help) show_usage "$args" "${notes[@]}" ;;
 esac
 
 branch=${1:-}
-[ -n "$branch" ] || usage "$args" "${notes[@]}"
+[ -n "$branch" ] || show_usage "$args" "${notes[@]}"
 
 if git show-ref --verify --quiet "refs/heads/$branch"; then
-	run git checkout "$branch"
+	trace_run git checkout "$branch"
 else
-	remote=$(default_remote)
-	run git fetch "$remote" "$branch"
-	run git checkout -b "$branch" "$remote/$branch"
+	remote=$(pick_remote)
+	trace_run git fetch "$remote" "$branch"
+	trace_run git checkout -b "$branch" "$remote/$branch"
 fi

@@ -6,10 +6,10 @@ set -euo pipefail
 # shellcheck source=bin/_prune.sh
 . "$(dirname "$0")/_prune.sh"
 
-run git fetch --prune
+trace_run git fetch --prune
 
-load_deletion_worktrees
-selected=$(deletion_candidates gone)
+read_worktrees
+selected=$(prune_candidates gone)
 if [ -z "$selected" ]; then
 	echo 'No deletable branches or worktrees with a gone upstream.'
 	exit 0
@@ -17,6 +17,6 @@ fi
 
 echo 'Branches and worktrees whose remote branch was deleted:'
 printf '%s\n' "$selected" | awk -F'\t' '{print "  " $1 " " $3}'
-confirm 'Delete these branches and worktree folders?' || die 'aborted'
+ask_yes 'Delete these branches and worktree folders?' || abort 'aborted'
 
-delete_candidates "$selected"
+prune_selected "$selected"

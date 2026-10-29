@@ -4,4 +4,4 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-run git reset --soft HEAD~1
+trace_run git reset --soft HEAD~1

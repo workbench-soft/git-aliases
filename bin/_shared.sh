@@ -3,37 +3,37 @@
 
 # shellcheck disable=SC2034  # each script uses a different subset of the colours
 if [ -z "${NO_COLOR:-}" ] && { [ -t 1 ] || [ -t 2 ]; }; then
-	C_RESET=$'\033[0m'
-	C_CMD=$'\033[1;36m'
-	C_MARK=$'\033[1;33m'
-	C_DIM=$'\033[38;5;240m'
-	C_NOTE=$'\033[38;5;220m'
+	CLR_OFF=$'\033[0m'
+	CLR_COMMAND=$'\033[1;36m'
+	CLR_PROMPT=$'\033[1;33m'
+	CLR_FAINT=$'\033[38;5;240m'
+	CLR_HINT=$'\033[38;5;220m'
 else
-	C_RESET='' C_CMD='' C_MARK='' C_DIM='' C_NOTE=''
+	CLR_OFF='' CLR_COMMAND='' CLR_PROMPT='' CLR_FAINT='' CLR_HINT=''
 fi
 
 # Echo a command the way a shell prompt would, then run it.
-note() {
-	printf '%s+%s %s%s%s\n' "$C_MARK" "$C_RESET" "$C_CMD" "$*" "$C_RESET" >&2
+trace() {
+	printf '%s+%s %s%s%s\n' "$CLR_PROMPT" "$CLR_OFF" "$CLR_COMMAND" "$*" "$CLR_OFF" >&2
 }
 
-run() {
-	note "$@"
+trace_run() {
+	trace "$@"
 	"$@"
 }
 
-die() {
+abort() {
 	printf 'error: %s\n' "$*" >&2
 	exit 1
 }
 
-warn() {
-	printf '%swarning:%s %s\n' "$C_NOTE" "$C_RESET" "$*" >&2
+report_warning() {
+	printf '%swarning:%s %s\n' "$CLR_HINT" "$CLR_OFF" "$*" >&2
 }
 
 # How the alias is called: the argument shape, then a line per flag. Exits 1,
 # the way git itself answers -h.
-usage() {
+show_usage() {
 	local name=${0##*/}
 	name=${name#git-}
 	printf 'usage: git %s %s\n' "$name" "$1" >&2
@@ -46,7 +46,7 @@ usage() {
 }
 
 # Ask on the terminal, not on stdin, so it works inside a pipeline.
-confirm() {
+ask_yes() {
 	local answer
 	printf '%s [y/N] ' "$*" >&2
 	read -r answer </dev/tty || return 1
@@ -56,12 +56,12 @@ confirm() {
 	esac
 }
 
-require() {
-	command -v "$1" >/dev/null 2>&1 || die "$1 is required, but it isn't installed"
+need_command() {
+	command -v "$1" >/dev/null 2>&1 || abort "$1 is required, but it isn't installed"
 }
 
 # origin when it exists, otherwise the only remote there is.
-default_remote() {
+pick_remote() {
 	local remotes
 	if git remote get-url origin >/dev/null 2>&1; then
 		printf 'origin\n'
@@ -72,11 +72,11 @@ default_remote() {
 		printf '%s\n' "$remotes"
 		return 0
 	fi
-	die 'no remote called origin, and more than one to choose from'
+	abort 'no remote called origin, and more than one to choose from'
 }
 
 # The branch that remote points at, falling back to master then main.
-default_branch() {
+remote_head_branch() {
 	local remote=$1 ref branch
 	if ref=$(git symbolic-ref --quiet "refs/remotes/$remote/HEAD" 2>/dev/null); then
 		printf '%s\n' "${ref#refs/remotes/"$remote"/}"
@@ -88,7 +88,7 @@ default_branch() {
 			return 0
 		fi
 	done
-	die "no $remote/HEAD, $remote/master or $remote/main found, run: git remote set-head $remote --auto"
+	abort "no $remote/HEAD, $remote/master or $remote/main found, run: git remote set-head $remote --auto"
 }
 
-fzf_preview='git log -n 20 --color=always --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1}'
+log_preview='git log -n 20 --color=always --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1}'

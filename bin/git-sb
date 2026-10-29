@@ -6,7 +6,7 @@
 set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
-require fzf
+need_command fzf
 
 here=$(git rev-parse --show-toplevel)
 
@@ -29,7 +29,7 @@ line=$(
 				else if (path == here) printf "%-50s \033[38;5;240m(this worktree)\033[0m\n", $2
 				else printf "%-50s \033[38;5;240m%s\033[0m\n", $2, path
 			}' |
-		fzf --ansi --height=40% --reverse --prompt='branch> ' --preview "$fzf_preview"
+		fzf --ansi --height=40% --reverse --prompt='branch> ' --preview "$log_preview"
 ) || exit 0
 
 [ -n "$line" ] || exit 0
@@ -41,9 +41,9 @@ worktree=$(git worktree list --porcelain |
 		/^branch /{if (substr($0, 8) == ref) {print path; exit}}')
 
 if [ -n "$worktree" ] && [ "$worktree" != "$here" ]; then
-	note "$branch is checked out at $worktree"
+	trace "$branch is checked out at $worktree"
 	printf '__cd__ %s\n' "$worktree"
 	exit 0
 fi
 
-run git checkout "$branch"
+trace_run git checkout "$branch"

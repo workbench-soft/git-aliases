@@ -5,6 +5,6 @@ set -euo pipefail
 . "$(dirname "$0")/_shared.sh"
 
 branch=$(git branch --show-current)
-[ -n "$branch" ] || die 'detached HEAD, nothing to pull'
+[ -n "$branch" ] || abort 'detached HEAD, nothing to pull'
 
-run git pull --rebase "$(default_remote)" "$branch"
+trace_run git pull --rebase "$(pick_remote)" "$branch"

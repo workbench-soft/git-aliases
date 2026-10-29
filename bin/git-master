@@ -4,23 +4,23 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-remote=$(default_remote)
-branch=$(default_branch "$remote")
+remote=$(pick_remote)
+branch=$(remote_head_branch "$remote")
 
 if [ -n "$(git status --porcelain)" ]; then
 	echo 'You have local changes:'
 	git status --short
-	confirm 'Drop all local changes?' || die 'aborted'
-	run git reset --hard HEAD
-	run git clean -fd
+	ask_yes 'Drop all local changes?' || abort 'aborted'
+	trace_run git reset --hard HEAD
+	trace_run git clean -fd
 fi
 
-run git fetch "$remote" "$branch"
+trace_run git fetch "$remote" "$branch"
 
 if git show-ref --verify --quiet "refs/heads/$branch"; then
-	run git checkout "$branch"
+	trace_run git checkout "$branch"
 else
-	run git checkout -b "$branch" --track "$remote/$branch"
+	trace_run git checkout -b "$branch" --track "$remote/$branch"
 fi
 
-run git reset --hard "$remote/$branch"
+trace_run git reset --hard "$remote/$branch"

@@ -11,13 +11,13 @@ notes=(
 )
 
 case ${1:-} in
-	-h | --help) usage "$args" "${notes[@]}" ;;
+	-h | --help) show_usage "$args" "${notes[@]}" ;;
 esac
 
 name=$(printf '%s' "$*" |
 	tr '[:upper:]' '[:lower:]' |
 	sed -E 's|[^a-z0-9/_.-]+|-|g; s/^-+|-+$//g; s/-+/-/g')
 
-[ -n "$name" ] || usage "$args" "${notes[@]}"
+[ -n "$name" ] || show_usage "$args" "${notes[@]}"
 
-run git checkout -b "$name"
+trace_run git checkout -b "$name"
