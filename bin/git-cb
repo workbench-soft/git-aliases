@@ -14,10 +14,11 @@ case ${1:-} in
 	-h | --help) show_usage "$synopsis" "${flag_help[@]}" ;;
 esac
 
-# A run of other characters turns into one hyphen, and the ends lose theirs.
+# A run of other characters turns into one hyphen. Git refuses "..", "/." and
+# a dot or slash at either end, so those go too.
 slug=$(printf '%s' "$*" |
 	tr '[:upper:]' '[:lower:]' |
-	sed -E 's|[^a-z0-9/_.-]+|-|g; s/^-+|-+$//g; s/-+/-/g')
+	sed -E 's|[^a-z0-9/_.-]+|-|g; s/-+/-/g; s/[.][.]+/./g; s|/+|/|g; s|/[.]+|/|g; s|^[-./]+||; s|[-./]+$||')
 
 [[ -n $slug ]] || show_usage "$synopsis" "${flag_help[@]}"
 

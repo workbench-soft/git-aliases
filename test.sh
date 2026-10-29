@@ -86,6 +86,10 @@ expect_eq 'git b names the branch' main "$(git b)"
 
 git cb 'Feature X!' >/dev/null 2>&1
 expect_eq 'git cb turns the name into a slug' feature-x "$(git b)"
+git checkout -q main
+git cb '--Odd..Name/.x.' >/dev/null 2>&1
+expect_eq 'git cb drops the dots git refuses' odd.name/x "$(git b)"
+git checkout -q feature-x
 
 expect_refusal 'git c refuses an empty message' 'usage: git c' git c
 
