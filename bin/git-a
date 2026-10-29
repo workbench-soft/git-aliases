@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 # List every alias in this repo with its description.
 set -euo pipefail
-# shellcheck source=bin/_lib.sh
-. "$(dirname "$0")/_lib.sh"
+# shellcheck source=bin/_shared.sh
+. "$(dirname "$0")/_shared.sh"
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 config="$root/aliases.gitconfig"
 [ -f "$config" ] || die "no aliases.gitconfig next to $0"
+
+# The comment block under the shebang of a git-* script.
+description() {
+	awk 'NR == 1 {next} /^#/ {sub(/^# ?/, ""); print; next} {exit}' "$1"
+}
 
 render() {
 	local entry name value script line

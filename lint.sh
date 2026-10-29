@@ -99,7 +99,9 @@ for script in bin/git-*; do
 	[ "$found" = 1 ] || fail "$script: no alias in $config runs it"
 done
 
-! executable bin/_lib.sh || fail 'bin/_lib.sh: sourced, not run, so it should not be executable'
+for helper in bin/_*.sh; do
+	! executable "$helper" || fail "$helper: sourced, not run, so it should not be executable"
+done
 
 for script in install.sh lint.sh test.sh hooks/pre-commit; do
 	executable "$script" || fail "$script: not executable, $chmod_hint"

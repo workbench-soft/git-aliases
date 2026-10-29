@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Prune remotes, then offer to delete branches and worktrees whose upstream is gone.
 set -euo pipefail
-# shellcheck source=bin/_lib.sh
-. "$(dirname "$0")/_lib.sh"
+# shellcheck source=bin/_shared.sh
+. "$(dirname "$0")/_shared.sh"
+# shellcheck source=bin/_prune.sh
+. "$(dirname "$0")/_prune.sh"
 
 run git fetch --prune
 

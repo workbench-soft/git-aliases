@@ -156,8 +156,10 @@ has 'git dbm finds nothing to delete' 'No deletable branches or worktrees with a
 
 # --- branch and worktree deletion -------------------------------------------
 
-# shellcheck source=bin/_lib.sh
-. "$root/bin/_lib.sh"
+# shellcheck source=bin/_shared.sh
+. "$root/bin/_shared.sh"
+# shellcheck source=bin/_prune.sh
+. "$root/bin/_prune.sh"
 
 # The stubs read test_dir: on Windows an exported tmp collides with TMP.
 confirm() {
@@ -223,7 +225,8 @@ load_deletion_worktrees
 selected=$(deletion_candidates all | awk -F'\t' '$1 == "delete-dirty"')
 # shellcheck disable=SC2016
 refuses 'dirty worktree requires confirmation' 'worktree retained:' bash -c '
-	. "$1/bin/_lib.sh"
+	. "$1/bin/_shared.sh"
+	. "$1/bin/_prune.sh"
 	confirm() { return 1; }
 	load_deletion_worktrees
 	delete_candidates "$2"
@@ -362,8 +365,8 @@ git push -qu origin prune-only
 git --git-dir="$tmp/origin.git" update-ref -d refs/heads/prune-only
 # Replace only the terminal prompt in a test copy of the command.
 mkdir -p "$tmp/aliases/bin"
-cp "$root/bin/git-dbm" "$root/bin/_lib.sh" "$tmp/aliases/bin/"
-declare -f confirm >>"$tmp/aliases/bin/_lib.sh"
+cp "$root/bin/git-dbm" "$root/bin/_shared.sh" "$root/bin/_prune.sh" "$tmp/aliases/bin/"
+declare -f confirm >>"$tmp/aliases/bin/_prune.sh"
 export delete_answer=yes
 git -c gitaliases.dir="$tmp/aliases" dbm >"$tmp/delete-output" 2>&1
 has 'git dbm displays branch labels' 'gone-plain [branch]' "$(<"$tmp/delete-output")"

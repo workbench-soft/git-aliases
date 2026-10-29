@@ -4,8 +4,8 @@
 # path is printed as "__cd__ <path>" and the shell function from the README
 # turns that into a real cd.
 set -euo pipefail
-# shellcheck source=bin/_lib.sh
-. "$(dirname "$0")/_lib.sh"
+# shellcheck source=bin/_shared.sh
+. "$(dirname "$0")/_shared.sh"
 require fzf
 
 here=$(git rev-parse --show-toplevel)

@@ -154,7 +154,7 @@ The default branch comes from `<remote>/HEAD`, falling back to `master` then
 
 1. Write `bin/git-<name>`: `#!/usr/bin/env bash`, then a `# ` comment saying
    what it does, then `set -euo pipefail`.
-2. Source `bin/_lib.sh` for the shared helpers: `run` (echo a command, then run
+2. Source `bin/_shared.sh` for the shared helpers: `run` (echo a command, then run
    it), `note`, `confirm`, `die`, `require`, `default_branch`, `gone_branches`.
 3. `chmod +x bin/git-<name>`. On Windows:
    `git update-index --add --chmod=+x bin/git-<name>`.

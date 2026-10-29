@@ -2,8 +2,8 @@
 # Fetch and rebase onto the default branch.
 # -c rebases onto the upstream of the current branch, or pass a branch name.
 set -euo pipefail
-# shellcheck source=bin/_lib.sh
-. "$(dirname "$0")/_lib.sh"
+# shellcheck source=bin/_shared.sh
+. "$(dirname "$0")/_shared.sh"
 
 remote=$(default_remote)
 
