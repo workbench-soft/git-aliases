@@ -22,7 +22,7 @@ whenever the Mac was off.
 
 - `CHANGELOG.md`
 
-## Update 2026-10-29: a new push stops the older runs
+## Update 2025-10-29: a new push stops the older runs
 
 - **Why** the single local runner spent time on checks and deploys for commits a newer push had replaced.
 - **Workflows** each workflow a push starts sets `cancel-in-progress: true` in a concurrency group keyed on the branch or the PR. A new push then stops the older run.
