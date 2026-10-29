@@ -1,29 +1,29 @@
-# Short git aliases with an installer and tests
+# Short git aliases, an installer and tests
 
-Done on 2025-09-16, before the history was reset to one commit. The old commits sit under `refs/backup/main` in the local backup mirror of `git-aliases`.
+Finished on 2025-09-16, before the history reset to one commit. The local backup mirror of `git-aliases` keeps the old commits under `refs/backup/main`.
 
 ## Why
 
-Everyday git commands took too much typing. Short aliases cover them, and one command installs them on a new machine.
+Everyday git commands needed too much typing. Short aliases replace them, and a single command sets them up on a new machine.
 
 ## User flows it touches
 
-- **Install** one command asks first, backs up each file it edits, then installs the aliases.
-- **List** `git a` lists every alias.
-- **Wrong call** an alias called without its arguments shows what it needs.
+- **Install** a single command asks first, copies each file it edits, then sets up the aliases.
+- **List** `git a` prints each alias.
+- **Wrong call** an alias run without its arguments prints what it needs.
 
 ## Changes
 
-- **`bin/_lib.sh`** new.
-- **`bin/git-cp`** new.
-- **`.github/workflows/lint.yml`** new.
-- **`bin/git-c`** new.
-- **`bin/git-co`** new.
-- **`bin/git-r`** new.
-- **`install.sh`** new.
-- **`lint.sh`** new.
-- **`test.sh`** new.
-- **`aliases.gitconfig`** new.
+- **`bin/_lib.sh`** added. Later split into `bin/_shared.sh` and `bin/_prune.sh`.
+- **`bin/git-cp`** added.
+- **`.github/workflows/lint.yml`** added.
+- **`bin/git-c`** added.
+- **`bin/git-co`** added.
+- **`bin/git-r`** added.
+- **`install.sh`** added.
+- **`lint.sh`** added.
+- **`test.sh`** added.
+- **`aliases.gitconfig`** added.
 - **Other files** 17 more.
 
 ## Steps, in commit order

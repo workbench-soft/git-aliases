@@ -1,2 +1,2 @@
-# Bash fails on CRLF, and Git for Windows checks out CRLF by default.
+# Git for Windows checks out CRLF by default, and bash stops on a CR.
 * text=auto eol=lf

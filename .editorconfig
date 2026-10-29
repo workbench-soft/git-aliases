@@ -7,7 +7,7 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 indent_style = tab
 
-# Matches the flags lint.sh passes to shfmt.
+# shfmt reads this, and lint.sh calls shfmt with the same --case-indent.
 [{bin/*,*.sh,hooks/*}]
 switch_case_indent = true
 

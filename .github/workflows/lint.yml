@@ -4,18 +4,18 @@ on:
   push:
   pull_request:
 
-# A newer push to the same branch or PR cancels the run still going.
+# A new push to the same branch or PR stops the older run.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Windows runs steps in PowerShell unless told otherwise.
+# Without this, steps on Windows run in PowerShell.
 defaults:
   run:
     shell: bash
 
 jobs:
-  # The repo is private, so this job runs on the Windows PC runner for 0 minutes.
+  # A private repo pays for hosted minutes, so the job runs on the Windows PC for free.
   lint:
     runs-on: [self-hosted, local]
     steps:

@@ -1,12 +1,12 @@
-# Every alias points at a script in bin/. The path comes from gitaliases.dir,
-# which install.sh sets, so the repo can live anywhere.
+# Each alias runs a script in bin/. install.sh sets gitaliases.dir to this
+# checkout, so the repo works from any folder.
 #
-# The shape of each line is fixed and lint.sh checks it:
+# lint.sh holds each line to this shape:
 #
 #	<name> = "!\"$(git config gitaliases.dir)\"/bin/git-<script>"
 #
-# Git appends the user's arguments to that command, so the script sees them as
-# "$@". Names stay sorted. Several names may share one script.
+# Git adds the arguments after the command, and the script reads them as "$@".
+# Keep the names sorted. Several names may run the same script.
 
 [alias]
 	a = "!\"$(git config gitaliases.dir)\"/bin/git-a"

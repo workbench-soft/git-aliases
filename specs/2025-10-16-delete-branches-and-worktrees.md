@@ -1,19 +1,19 @@
-# db and dbm delete branches together with their worktrees
+# db and dbm remove a branch and its worktree together
 
-Done on 2025-10-16, before the history was reset to one commit. The old commits sit under `refs/backup/main` in the local backup mirror of `git-aliases`.
+Finished on 2025-10-16, before the history reset to one commit. The local backup mirror of `git-aliases` keeps the old commits under `refs/backup/main`.
 
 ## Why
 
-Deleting a branch left its worktree folder behind. The delete aliases now remove both.
+A deleted branch used to leave its worktree folder on disk. The delete aliases now remove the branch and the folder.
 
 ## User flows it touches
 
 - **Delete a branch** `git db` removes the branch and its worktree.
-- **Dirty worktree** the alias deletes the clean ones first, then asks about the dirty ones.
+- **Worktree with changes** the alias removes the clean entries first, then asks about each one with changes.
 
 ## Changes
 
-- **`bin/_lib.sh`** changed.
+- **`bin/_lib.sh`** changed. Its delete code now sits in `bin/_prune.sh`.
 - **`test.sh`** changed.
 - **`aliases.gitconfig`** changed.
 - **`bin/git-db`** changed.

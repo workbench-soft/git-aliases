@@ -1,31 +1,31 @@
-# Add a Windows setup and describe both in the README
+# A Windows setup, and both setups in the README
 
 ## Why
 
-`install.sh` wires up zsh, so on Windows `git sb` can't change directory in
-PowerShell. The aliases themselves run on Windows already: Git for Windows
-runs each `bin/` script with its own bash.
+`install.sh` hooks into zsh, so `git sb` can't change folder in PowerShell on
+Windows. The aliases already run there: Git for Windows runs each `bin/`
+script in its bash.
 
 ## User flows it touches
 
-- **Install on macOS or Linux** stays as it is, the README moves it under its
-  own heading.
-- **Install on Windows** a new `install.ps1` does the same git config steps and
-  hooks `git sb` into the PowerShell profile.
+- **Install on macOS or Linux** works as before, under its own README heading.
+- **Install on Windows** a new `install.ps1` runs the same git config steps
+  and adds `git sb` to the PowerShell profile.
 - **Update and uninstall** the README covers both systems.
 
-With `core.autocrlf=true`, the Git for Windows default, git checks the scripts
-out with CRLF line endings. Bash then fails on `set -euo pipefail\r`.
+Git for Windows defaults to `core.autocrlf=true` and checks the scripts out
+with CRLF endings. Bash then stops on `set -euo pipefail\r`.
 
 ## Changes
 
-- **`.gitattributes`** new. Keeps LF line endings in the checkout on every
+- **`.gitattributes`** added. It keeps LF endings in the checkout on each
   system.
-- **`install.ps1`** new. Checks the git version, offers to drop a clashing
-  `[alias]` section, sets `gitaliases.dir` and `include.path`, offers to
-  source `shell/git-sb.ps1` from `$PROFILE`, sets `core.hooksPath`, runs
-  `git a`. Asks before every change and backs up each file it edits.
-- **`shell/git-sb.ps1`** new. A PowerShell `git` function that turns
+- **`install.ps1`** added. It checks the git version and offers to remove a
+  clashing `[alias]` section. It sets `gitaliases.dir` and `include.path`,
+  offers to source `shell/git-sb.ps1` from `$PROFILE`, sets `core.hooksPath`
+  and runs `git a`. Each change waits for a yes, and each edited file gets a
+  copy first.
+- **`shell/git-sb.ps1`** added. A PowerShell `git` function turns
   `__cd__ <path>` into `Set-Location`, then moves the VS Code window.
 - **`lint.sh`** parses the `.ps1` files when `pwsh` is installed.
 - **`README.md`** install, update and uninstall split into macOS and Linux,
