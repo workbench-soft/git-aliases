@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# A newer push to the same branch or PR cancels the run still going.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Windows runs steps in PowerShell unless told otherwise.
 defaults:
   run:

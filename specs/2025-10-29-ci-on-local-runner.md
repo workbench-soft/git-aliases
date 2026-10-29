@@ -20,3 +20,8 @@ Development moved to Windows. CI asked for the Mac runner by name and waited whi
 ## Docs to update
 
 - `CHANGELOG.md`
+
+## Update 2026-10-29: a newer push cancels the older runs
+
+- **Why** the one local runner spent its time on checks and deploys of commits a newer push already replaced.
+- **Workflows** each workflow a push starts sets `cancel-in-progress: true` in its concurrency group, keyed on the branch or the PR, so a newer push stops the older run.
