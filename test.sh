@@ -99,6 +99,7 @@ done
 
 git init -q "$tmp/no-remote"
 expect_refusal 'an alias in a repo with no remote says so' 'no remote set up' git -C "$tmp/no-remote" master
+expect_refusal 'git r -h works in a repo with no remote' 'usage: git r' git -C "$tmp/no-remote" r -h
 
 expect_in 'the usage lists each flag' '-f  push with --force-with-lease' "$(git cp -h 2>&1 || true)"
 

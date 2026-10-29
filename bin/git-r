@@ -5,8 +5,6 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-remote=$(pick_remote)
-
 synopsis='[-c | <branch>]'
 flag_help=(
 	'no arguments  rebase onto the default branch of the remote'
@@ -16,6 +14,11 @@ flag_help=(
 
 case ${1:-} in
 	-h | --help) show_usage "$synopsis" "${flag_help[@]}" ;;
+esac
+
+remote=$(pick_remote)
+
+case ${1:-} in
 	-c) onto='@{u}' ;;
 	'') onto="$remote/$(remote_head_branch "$remote")" ;;
 	-*)
