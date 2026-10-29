@@ -97,6 +97,9 @@ for alias_name in cb co cp; do
 	expect_refusal "git $alias_name with no arguments prints the usage" "usage: git $alias_name" git "$alias_name"
 done
 
+git init -q "$tmp/no-remote"
+expect_refusal 'an alias in a repo with no remote says so' 'no remote set up' git -C "$tmp/no-remote" master
+
 expect_in 'the usage lists each flag' '-f  push with --force-with-lease' "$(git cp -h 2>&1 || true)"
 
 echo two >>file.txt

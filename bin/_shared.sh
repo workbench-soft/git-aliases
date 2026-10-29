@@ -70,13 +70,14 @@ pick_remote() {
 		printf 'origin\n'
 		return 0
 	}
-	local all_remotes
+	local all_remotes count
 	all_remotes=$(git remote)
-	if [[ $(printf '%s' "$all_remotes" | grep -c .) == 1 ]]; then
-		printf '%s\n' "$all_remotes"
-		return 0
-	fi
-	abort 'no remote called origin, and more than one to choose from'
+	count=$(printf '%s' "$all_remotes" | grep -c . || true)
+	case $count in
+		0) abort 'no remote set up, add one with: git remote add origin <url>' ;;
+		1) printf '%s\n' "$all_remotes" ;;
+		*) abort 'no remote called origin, and more than one to choose from' ;;
+	esac
 }
 
 # Prints the branch <remote>/HEAD names. Without it, master, then main.
