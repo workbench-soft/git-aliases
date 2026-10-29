@@ -1,24 +1,23 @@
-# Makes `git sb` able to change directory.
+# Lets `git sb` change the directory of the zsh it runs in.
 #
-# `git sb` may pick a branch that lives in another worktree. A git alias runs in
-# a subprocess and can't move the parent shell, so it prints "__cd__ <path>" and
-# this wrapper does the cd, then points the VS Code window at the same place.
+# The branch `git sb` picks may sit in another worktree. A git alias runs as a
+# child process, and a child can't cd for its parent. So the alias prints
+# "__cd__ <path>", and this function does the cd and moves the VS Code window.
 #
 # install.sh offers to source this file from ~/.zshrc.
 
 git() {
-	if [[ "$1" == "sb" ]]; then
-		shift
-		local out
-		out=$(command git sb "$@") || return
-		if [[ "$out" == "__cd__ "* ]]; then
-			local dir=${out#__cd__ }
-			cd "$dir" || return
-			if [[ "$TERM_PROGRAM" == "vscode" ]] && (( $+commands[code] )); then
-				code -r "$dir"
-			fi
-		fi
-	else
+	[[ $1 == sb ]] || {
 		command git "$@"
+		return
+	}
+	shift
+	local reply target
+	reply=$(command git sb "$@") || return
+	[[ $reply == "__cd__ "* ]] || return 0
+	target=${reply#__cd__ }
+	cd "$target" || return
+	if [[ $TERM_PROGRAM == vscode ]] && (($+commands[code])); then
+		code -r "$target"
 	fi
 }
