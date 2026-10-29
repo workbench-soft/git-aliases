@@ -1,69 +1,70 @@
 #!/usr/bin/env bash
-# Runs the aliases against a throwaway repo, with a throwaway HOME, and checks
-# what they did. Touches nothing outside its temp directory.
+# Runs each alias in a scratch repo under a scratch HOME, then checks the result.
+# All of it happens inside one temp directory, which goes away at exit.
 set -euo pipefail
 
-root=$(cd "$(dirname "$0")" && pwd)
-windows=no
+repo=$(cd "$(dirname "$0")" && pwd)
+on_windows=no
 case $(uname -s) in
-	MINGW* | MSYS* | CYGWIN*) windows=yes ;;
+	MINGW* | MSYS* | CYGWIN*) on_windows=yes ;;
 esac
 
 tmp=$(mktemp -d)
-# On Windows git prints C:/... paths, so the checks compare against those.
-if [ "$windows" = yes ]; then
+# Git for Windows prints C:/... paths, so the expected values use that form too.
+if [[ $on_windows == yes ]]; then
 	tmp=$(cd "$tmp" && pwd -W)
 else
 	tmp=$(cd "$tmp" && pwd -P)
 fi
 trap 'rm -rf "$tmp"' EXIT
 
-checks=0
+total=0
 failures=0
 
-pass() { checks=$((checks + 1)); }
+record_pass() { total=$((total + 1)); }
 
-fail() {
-	checks=$((checks + 1))
+record_failure() {
+	total=$((total + 1))
 	failures=$((failures + 1))
 	printf 'FAIL %s\n' "$1" >&2
 	printf '  expected: %s\n' "$2" >&2
 	printf '  actual:   %s\n' "$3" >&2
 }
 
-is() {
-	if [ "$2" = "$3" ]; then pass; else fail "$1" "$2" "$3"; fi
+expect_eq() {
+	if [[ $2 == "$3" ]]; then record_pass; else record_failure "$1" "$2" "$3"; fi
 }
 
-has() {
-	case $3 in
-		*"$2"*) pass ;;
-		*) fail "$1" "output containing '$2'" "$3" ;;
-	esac
+expect_in() {
+	if [[ $3 == *"$2"* ]]; then record_pass; else record_failure "$1" "output containing '$2'" "$3"; fi
 }
 
-# Checks a command exits non-zero and says why.
-refuses() {
-	local label=$1 fragment=$2
+# Runs the command after the label and the fragment. It passes when the command
+# exits non-zero and its output holds the fragment.
+expect_refusal() {
+	local label=$1 fragment=$2 output code=0
 	shift 2
-	local output exit_code=0
-	output=$("$@" 2>&1) || exit_code=$?
-	if [ "$exit_code" -eq 0 ]; then
-		fail "$label" 'a non-zero exit' 'exit 0'
+	output=$("$@" 2>&1) || code=$?
+	if ((code == 0)); then
+		record_failure "$label" 'a non-zero exit' 'exit 0'
 	else
-		has "$label" "$fragment" "$output"
+		expect_in "$label" "$fragment" "$output"
 	fi
 }
 
-# --- a git that only knows these aliases ------------------------------------
+exists() {
+	if [[ -e $1 ]]; then echo yes; else echo no; fi
+}
+
+# --- a git that knows these aliases and nothing else ------------------------
 
 export HOME="$tmp/home"
 export NO_COLOR=1
 unset XDG_CONFIG_HOME
 mkdir -p "$HOME"
 
-git config --global gitaliases.dir "$root"
-git config --global include.path "$root/aliases.gitconfig"
+git config --global gitaliases.dir "$repo"
+git config --global include.path "$repo/aliases.gitconfig"
 git config --global user.name 'Test User'
 git config --global user.email 'test@example.com'
 git config --global commit.gpgsign false
@@ -79,63 +80,59 @@ git commit -qm 'init'
 git push -q -u origin main
 git remote set-head origin --auto >/dev/null
 
-# --- the aliases ------------------------------------------------------------
+# --- one alias at a time ----------------------------------------------------
 
-is 'git b prints the branch' main "$(git b)"
+expect_eq 'git b names the branch' main "$(git b)"
 
 git cb 'Feature X!' >/dev/null 2>&1
-is 'git cb normalizes the name' feature-x "$(git b)"
+expect_eq 'git cb turns the name into a slug' feature-x "$(git b)"
 
-refuses 'git c without a message' 'usage: git c' git c
+expect_refusal 'git c refuses an empty message' 'usage: git c' git c
 
 for alias_name in c cb co cp r; do
-	refuses "git $alias_name -h shows the usage" "usage: git $alias_name" git "$alias_name" -h
+	expect_refusal "git $alias_name -h prints the usage" "usage: git $alias_name" git "$alias_name" -h
 done
 
 for alias_name in cb co cp; do
-	refuses "git $alias_name without arguments shows the usage" "usage: git $alias_name" git "$alias_name"
+	expect_refusal "git $alias_name with no arguments prints the usage" "usage: git $alias_name" git "$alias_name"
 done
 
-has 'the usage explains the flags' '-f  push with --force-with-lease' "$(git cp -h 2>&1 || true)"
+expect_in 'the usage lists each flag' '-f  push with --force-with-lease' "$(git cp -h 2>&1 || true)"
 
 echo two >>file.txt
 git add -A
 git c fixed the file >/dev/null 2>&1
-is 'git c joins the message' 'fixed the file' "$(git log -1 --format=%s)"
+expect_eq 'git c joins its words into the message' 'fixed the file' "$(git log -1 --format=%s)"
 
 echo three >>file.txt
 git add -A
 git c -- -fixed with a dash >/dev/null 2>&1
-is 'git c takes a message starting with a dash after --' '-fixed with a dash' "$(git log -1 --format=%s)"
+expect_eq 'git c keeps a leading dash after --' '-fixed with a dash' "$(git log -1 --format=%s)"
 git reset -q --soft HEAD~1
 
-has 'git last shows the commit' 'fixed the file' "$(git last)"
+expect_in 'git last prints the last commit' 'fixed the file' "$(git last)"
 
 git sr1 >/dev/null 2>&1
-is 'git sr1 drops the commit' 'init' "$(git log -1 --format=%s)"
-is 'git sr1 keeps the change staged' 'file.txt' "$(git diff --cached --name-only)"
+expect_eq 'git sr1 removes the last commit' 'init' "$(git log -1 --format=%s)"
+expect_eq 'git sr1 leaves its change staged' 'file.txt' "$(git diff --cached --name-only)"
 
 git cp -s second commit >/dev/null 2>&1
-is 'git cp commits' 'second commit' "$(git log -1 --format=%s)"
-is 'git cp pushes' 'second commit' "$(git -C "$tmp/origin.git" log -1 --format=%s feature-x)"
+expect_eq 'git cp makes the commit' 'second commit' "$(git log -1 --format=%s)"
+expect_eq 'git cp pushes the commit' 'second commit' "$(git -C "$tmp/origin.git" log -1 --format=%s feature-x)"
 
 echo junk >junk.txt
 git hr >/dev/null 2>&1
-if [ -e junk.txt ]; then
-	fail 'git hr deletes untracked files' 'junk.txt gone' 'junk.txt still there'
-else
-	pass
-fi
+expect_eq 'git hr removes untracked files' no "$(exists junk.txt)"
 
 git srmb >/dev/null 2>&1
-is 'git srmb resets to the merge base' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+expect_eq 'git srmb moves HEAD to the merge base' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
 
 git reset -q --hard
 git master >/dev/null 2>&1
-is 'git master switches to the default branch' main "$(git b)"
+expect_eq 'git master lands on the default branch' main "$(git b)"
 
 git co feature-x >/dev/null 2>&1
-is 'git co switches to a local branch' feature-x "$(git b)"
+expect_eq 'git co switches to a local branch' feature-x "$(git b)"
 
 git clone -q "$tmp/origin.git" "$tmp/elsewhere"
 git -C "$tmp/elsewhere" checkout -q -b remote-only
@@ -143,38 +140,40 @@ git -C "$tmp/elsewhere" commit -q --allow-empty -m 'made elsewhere'
 git -C "$tmp/elsewhere" push -q -u origin remote-only
 
 git co remote-only >/dev/null 2>&1
-is 'git co fetches a branch it does not have' remote-only "$(git b)"
+expect_eq 'git co fetches a branch only the remote has' remote-only "$(git b)"
 
 git checkout -q main
 git r >/dev/null 2>&1
-is 'git r leaves an up to date branch alone' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+expect_eq 'git r keeps an up to date branch where it is' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
 
 git p >/dev/null 2>&1
-is 'git p leaves an up to date branch alone' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+expect_eq 'git p keeps an up to date branch where it is' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
 
-has 'git dbm finds nothing to delete' 'No deletable branches or worktrees with a gone upstream.' "$(git dbm 2>&1)"
+expect_in 'git dbm reports an empty list' 'No deletable branches or worktrees with a gone upstream.' "$(git dbm 2>&1)"
 
-# --- branch and worktree deletion -------------------------------------------
+# --- deleting branches and worktrees ----------------------------------------
 
 # shellcheck source=bin/_shared.sh
-. "$root/bin/_shared.sh"
+. "$repo/bin/_shared.sh"
 # shellcheck source=bin/_prune.sh
-. "$root/bin/_prune.sh"
+. "$repo/bin/_prune.sh"
 
-# The stubs read test_dir: on Windows an exported tmp collides with TMP.
+# The stubs read scratch, since an exported tmp clashes with TMP on Windows.
+# ask_yes logs each question and answers with $answer_yes.
 ask_yes() {
-	printf '%s\n' "$*" >>"$test_dir/confirmations"
-	[ "${delete_answer:-no}" = yes ]
+	printf '%s\n' "$*" >>"$scratch/questions"
+	[[ ${answer_yes:-no} == yes ]]
 }
 
+# fzf saves the menu it got, then picks the lines whose branch is in $pick.
 fzf() {
-	local input
-	input=$(cat)
-	printf '%s\n' "$input" >"$test_dir/picker"
-	printf '%s\n' "$input" | awk -F'\t' 'index("\n" ENVIRON["pick_branch"] "\n", "\n" $1 "\n")'
+	local menu
+	menu=$(cat)
+	printf '%s\n' "$menu" >"$scratch/menu"
+	printf '%s\n' "$menu" | awk -F'\t' 'index("\n" ENVIRON["pick"] "\n", "\n" $1 "\n")'
 }
 export -f fzf
-export test_dir=$tmp
+export scratch=$tmp
 
 git branch delete-plain
 git worktree add -q -b delete-clean "$tmp/clean worktree"
@@ -183,8 +182,8 @@ git worktree add -q -b delete-locked "$tmp/locked"
 git worktree lock "$tmp/locked"
 git worktree add -q --detach "$tmp/detached"
 git worktree add -q -b delete-missing "$tmp/missing"
-# Windows folder names can't hold a tab or a newline.
-if [ "$windows" = no ]; then
+# NTFS rejects a tab or a newline in a folder name.
+if [[ $on_windows == no ]]; then
 	git worktree add -q -b delete-odd "$tmp/odd"$'\t\n'"path"
 fi
 git config branch.delete-clean.description 'private branch setting'
@@ -196,54 +195,54 @@ echo '*.cache' >>.git/info/exclude
 echo ignored >"$tmp/clean worktree/ignored.cache"
 echo shared-stash >>file.txt
 git stash push -qm shared-stash
-shared_stash=$(git rev-parse refs/stash)
+stash_before=$(git rev-parse refs/stash)
 
 read_worktrees
-candidates=$(prune_candidates all)
-has 'picker labels branches' $'delete-plain\tbranch\t[branch]' "$candidates"
-has 'picker labels worktrees and paths' "[worktree] $tmp/clean worktree" "$candidates"
-has 'picker includes detached worktrees' '[worktree detached]' "$candidates"
-is 'picker excludes locked worktrees' '' "$(printf '%s\n' "$candidates" | grep -F delete-locked || true)"
-is 'picker excludes current branch' '' "$(printf '%s\n' "$candidates" | awk -F'\t' '$1 == "main"')"
-linked_candidates=$(cd "$tmp/dirty" && read_worktrees && prune_candidates all)
-is 'picker excludes the main worktree from a linked worktree' '' "$(printf '%s\n' "$linked_candidates" | awk -F'\t' '$1 == "main"')"
-is 'picker excludes the current linked worktree' '' "$(printf '%s\n' "$linked_candidates" | grep -F delete-dirty || true)"
-detached_candidates=$(cd "$tmp/detached" && read_worktrees && prune_candidates all)
-is 'picker excludes the current detached worktree' '' "$(printf '%s\n' "$detached_candidates" | grep -F '[worktree detached]' || true)"
+menu=$(prune_candidates all)
+expect_in 'the menu marks a plain branch' $'delete-plain\tbranch\t[branch]' "$menu"
+expect_in 'the menu marks a worktree and shows its path' "[worktree] $tmp/clean worktree" "$menu"
+expect_in 'the menu offers detached worktrees' '[worktree detached]' "$menu"
+expect_eq 'the menu leaves out locked worktrees' '' "$(grep -F delete-locked <<<"$menu" || true)"
+expect_eq 'the menu leaves out the current branch' '' "$(awk -F'\t' '$1 == "main"' <<<"$menu")"
+menu_from_linked=$(cd "$tmp/dirty" && read_worktrees && prune_candidates all)
+expect_eq 'from a linked worktree the menu leaves out the main one' '' "$(awk -F'\t' '$1 == "main"' <<<"$menu_from_linked")"
+expect_eq 'from a linked worktree the menu leaves out that worktree' '' "$(grep -F delete-dirty <<<"$menu_from_linked" || true)"
+menu_from_detached=$(cd "$tmp/detached" && read_worktrees && prune_candidates all)
+expect_eq 'from a detached worktree the menu leaves out that worktree' '' "$(grep -F '[worktree detached]' <<<"$menu_from_detached" || true)"
 
-export pick_branch=$'delete-clean\ndelete-plain'
-git db >"$tmp/delete-output" 2>&1
-is 'git db removes the worktree folder' no "$([ -e "$tmp/clean worktree" ] && echo yes || echo no)"
-is 'git db removes private metadata' no "$([ -e "$clean_gitdir" ] && echo yes || echo no)"
-is 'git db removes branch refs' '' "$(git branch --list delete-clean)"
-is 'git db removes branch configuration' '' "$(git config --get branch.delete-clean.description || true)"
-is 'git db removes branch reflog' no "$(git reflog exists refs/heads/delete-clean && echo yes || echo no)"
-has 'git db passes labeled entries to fzf' '[branch]' "$(<"$tmp/picker")"
-is 'git db multi-select also deletes a plain branch' '' "$(git branch --list delete-plain)"
+export pick=$'delete-clean\ndelete-plain'
+git db >"$tmp/out" 2>&1
+expect_eq 'git db deletes the worktree folder' no "$(exists "$tmp/clean worktree")"
+expect_eq 'git db deletes the worktree metadata in .git' no "$(exists "$clean_gitdir")"
+expect_eq 'git db deletes the branch ref' '' "$(git branch --list delete-clean)"
+expect_eq 'git db deletes the branch config' '' "$(git config --get branch.delete-clean.description || true)"
+expect_eq 'git db deletes the branch reflog' no "$(git reflog exists refs/heads/delete-clean && echo yes || echo no)"
+expect_in 'git db hands fzf the labelled lines' '[branch]' "$(<"$tmp/menu")"
+expect_eq 'git db deletes a plain branch picked with the rest' '' "$(git branch --list delete-plain)"
 
 read_worktrees
-selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-dirty"')
+picked=$(prune_candidates all | awk -F'\t' '$1 == "delete-dirty"')
 # shellcheck disable=SC2016
-refuses 'dirty worktree requires confirmation' 'worktree retained:' bash -c '
+expect_refusal 'a worktree with changes waits for a yes' 'worktree retained:' bash -c '
 	. "$1/bin/_shared.sh"
 	. "$1/bin/_prune.sh"
 	ask_yes() { return 1; }
 	read_worktrees
 	prune_selected "$2"
-' bash "$root" "$selected"
-is 'declining keeps dirty files' dirty "$(tail -n 1 "$tmp/dirty/file.txt")"
-has 'declining keeps branch' 'delete-dirty' "$(git branch --list delete-dirty)"
-delete_answer=yes
-prune_selected "$selected" >"$tmp/delete-output" 2>&1
-has 'forced removal warns about data loss' 'including uncommitted and untracked files?' "$(<"$tmp/confirmations")"
-is 'forced removal deletes the folder and ignored files' no "$([ -e "$tmp/dirty" ] && echo yes || echo no)"
-is 'forced removal deletes the branch' '' "$(git branch --list delete-dirty)"
+' bash "$repo" "$picked"
+expect_eq 'a no keeps the changed files' dirty "$(tail -n 1 "$tmp/dirty/file.txt")"
+expect_in 'a no keeps the branch' 'delete-dirty' "$(git branch --list delete-dirty)"
+answer_yes=yes
+prune_selected "$picked" >"$tmp/out" 2>&1
+expect_in 'the force question warns that files go' 'including uncommitted and untracked files?' "$(<"$tmp/questions")"
+expect_eq 'a yes deletes the folder, ignored files too' no "$(exists "$tmp/dirty")"
+expect_eq 'a yes deletes the branch' '' "$(git branch --list delete-dirty)"
 
-# git drops the registration, then fails because a dev server wrote a new file.
+# Acts like a dev server: git drops the worktree, then a new file makes it fail.
 git() {
 	local last
 	for last; do :; done
-	if [ "${1:-} ${2:-}" = 'worktree remove' ] && [ "$last" = "${busy_path:-}" ]; then
+	if [[ "${1:-} ${2:-}" == 'worktree remove' && $last == "${busy:-}" ]]; then
 		command git "$@" || return
 		mkdir -p "$last/.vite"
 		echo "error: failed to delete '$last': Directory not empty" >&2
@@ -252,44 +251,44 @@ git() {
 	command git "$@"
 }
 git worktree add -q -b delete-busy-clean "$tmp/busy-clean"
-busy_path="$tmp/busy-clean"
-: >"$tmp/confirmations"
-delete_answer=no
+busy="$tmp/busy-clean"
+: >"$tmp/questions"
+answer_yes=no
 read_worktrees
-selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-busy-clean"')
-prune_selected "$selected" >"$tmp/delete-output" 2>&1
-is 'a clean folder refilled during removal is deleted without asking' '' "$(<"$tmp/confirmations")"
-is 'a clean folder refilled during removal is deleted' no "$([ -e "$tmp/busy-clean" ] && echo yes || echo no)"
-is 'a clean folder refilled during removal loses its branch' '' "$(git branch --list delete-busy-clean)"
+picked=$(prune_candidates all | awk -F'\t' '$1 == "delete-busy-clean"')
+prune_selected "$picked" >"$tmp/out" 2>&1
+expect_eq 'a clean folder that refills goes without a question' '' "$(<"$tmp/questions")"
+expect_eq 'a clean folder that refills is deleted' no "$(exists "$tmp/busy-clean")"
+expect_eq 'a clean folder that refills loses its branch' '' "$(git branch --list delete-busy-clean)"
 
 git worktree add -q -b delete-busy "$tmp/busy"
 git worktree add -q -b delete-after-busy "$tmp/after-busy"
 echo untracked >"$tmp/busy/untracked.txt"
-busy_path="$tmp/busy"
-delete_answer=yes
+busy="$tmp/busy"
+answer_yes=yes
 read_worktrees
-selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-busy" || $1 == "delete-after-busy"')
-prune_selected "$selected" >"$tmp/delete-output" 2>&1
-is 'a dirty folder refilled during removal is deleted' no "$([ -e "$tmp/busy" ] && echo yes || echo no)"
-is 'a dirty folder refilled during removal loses its branch' '' "$(git branch --list delete-busy)"
-is 'deletion continues after a refilled folder' '' "$(git branch --list delete-after-busy)"
+picked=$(prune_candidates all | awk -F'\t' '$1 == "delete-busy" || $1 == "delete-after-busy"')
+prune_selected "$picked" >"$tmp/out" 2>&1
+expect_eq 'a changed folder that refills is deleted' no "$(exists "$tmp/busy")"
+expect_eq 'a changed folder that refills loses its branch' '' "$(git branch --list delete-busy)"
+expect_eq 'the entry after a refilled folder still goes' '' "$(git branch --list delete-after-busy)"
 
 git worktree add -q -b delete-stuck "$tmp/stuck"
 echo untracked >"$tmp/stuck/untracked.txt"
-busy_path="$tmp/stuck"
+busy="$tmp/stuck"
 rm() {
-	if [ "${3:-}" = "$tmp/stuck" ]; then
+	if [[ ${3:-} == "$tmp/stuck" ]]; then
 		echo "rm: $3: Directory not empty" >&2
 		return 1
 	fi
 	command rm "$@"
 }
 read_worktrees
-selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-stuck"')
-prune_selected "$selected" >"$tmp/delete-output" 2>&1
+picked=$(prune_candidates all | awk -F'\t' '$1 == "delete-stuck"')
+prune_selected "$picked" >"$tmp/out" 2>&1
 unset -f git rm
-has 'a folder that stays busy gets a warning' "warning: could not delete '$tmp/stuck'" "$(<"$tmp/delete-output")"
-is 'a folder that stays busy still loses its branch' '' "$(git branch --list delete-stuck)"
+expect_in 'a folder that stays busy gets a warning' "warning: could not delete '$tmp/stuck'" "$(<"$tmp/out")"
+expect_eq 'a folder that stays busy still loses its branch' '' "$(git branch --list delete-stuck)"
 rm -rf "$tmp/stuck"
 
 git worktree add -q -b order-dirty "$tmp/order-dirty"
@@ -297,52 +296,51 @@ echo untracked >"$tmp/order-dirty/untracked.txt"
 git worktree add -q -b order-clean "$tmp/order-clean"
 git branch order-plain
 read_worktrees
-selected=$'no-such-branch\tbranch\t[branch]\n'$(prune_candidates all | awk -F'\t' '$1 ~ /^order-/')
-status=0
+picked=$'no-such-branch\tbranch\t[branch]\n'$(prune_candidates all | awk -F'\t' '$1 ~ /^order-/')
+code=0
 (
 	ask_yes() {
-		printf 'clean=%s plain=%s\n' "$([ -e "$tmp/order-clean" ] && echo yes || echo no)" \
-			"$(git branch --list order-plain)" >"$tmp/order-state"
+		printf 'clean=%s plain=%s\n' "$(exists "$tmp/order-clean")" "$(git branch --list order-plain)" >"$tmp/order-state"
 	}
-	prune_selected "$selected"
-) >"$tmp/delete-output" 2>&1 || status=$?
-is 'questions come after the deletions that need none' 'clean=no plain=' "$(<"$tmp/order-state")"
-is 'a failed entry leaves the rest deleted' '' "$(git branch --list 'order-*')"
-is 'a failed entry makes the command fail' 1 "$status"
-has 'a failed entry is reported' 'branch retained: no-such-branch' "$(<"$tmp/delete-output")"
+	prune_selected "$picked"
+) >"$tmp/out" 2>&1 || code=$?
+expect_eq 'the questions wait until the rest is deleted' 'clean=no plain=' "$(<"$tmp/order-state")"
+expect_eq 'one failed entry leaves the rest deleted' '' "$(git branch --list 'order-*')"
+expect_eq 'one failed entry makes the exit code 1' 1 "$code"
+expect_in 'the failed entry is named' 'branch retained: no-such-branch' "$(<"$tmp/out")"
 
 read_worktrees
-selected=$(prune_candidates all | awk -F'\t' '$3 ~ /^\[worktree detached\]/ || $1 == "delete-odd"')
-prune_selected "$selected" >"$tmp/delete-output" 2>&1
-is 'detached worktree folder is removed' no "$([ -e "$tmp/detached" ] && echo yes || echo no)"
-if [ "$windows" = no ]; then
-	is 'paths with tabs and newlines are removed exactly' no "$([ -e "$tmp/odd"$'\t\n'"path" ] && echo yes || echo no)"
+picked=$(prune_candidates all | awk -F'\t' '$3 ~ /^\[worktree detached\]/ || $1 == "delete-odd"')
+prune_selected "$picked" >"$tmp/out" 2>&1
+expect_eq 'the detached worktree folder is deleted' no "$(exists "$tmp/detached")"
+if [[ $on_windows == no ]]; then
+	expect_eq 'a path with a tab and a newline is deleted' no "$(exists "$tmp/odd"$'\t\n'"path")"
 fi
-is 'deleting a detached worktree keeps the current branch' main "$(git b)"
+expect_eq 'deleting a detached worktree leaves the current branch' main "$(git b)"
 
-rm "$tmp/missing/file.txt" "$tmp/missing/.git"
+command rm "$tmp/missing/file.txt" "$tmp/missing/.git"
 rmdir "$tmp/missing"
-export pick_branch=delete-missing
-git db >"$tmp/delete-output" 2>&1
-is 'git db removes a missing worktree registration and branch' '' "$(git branch --list delete-missing)"
+export pick=delete-missing
+git db >"$tmp/out" 2>&1
+expect_eq 'git db clears a worktree whose folder is gone, and its branch' '' "$(git branch --list delete-missing)"
 
 git worktree add -q -b delete-shared "$tmp/shared-a"
 git worktree add -q --force "$tmp/shared-b" delete-shared
 read_worktrees
-selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-shared" && !seen++')
-prune_selected "$selected" >"$tmp/delete-output" 2>&1
-has 'removing one worktree keeps a shared branch' 'delete-shared' "$(git branch --list delete-shared)"
+picked=$(prune_candidates all | awk -F'\t' '$1 == "delete-shared" && !seen++')
+prune_selected "$picked" >"$tmp/out" 2>&1
+expect_in 'a branch another worktree holds survives' 'delete-shared' "$(git branch --list delete-shared)"
 read_worktrees
-selected=$(prune_candidates all | awk -F'\t' '$1 == "delete-shared"')
-prune_selected "$selected" >"$tmp/delete-output" 2>&1
-is 'removing the last worktree deletes a shared branch' '' "$(git branch --list delete-shared)"
+picked=$(prune_candidates all | awk -F'\t' '$1 == "delete-shared"')
+prune_selected "$picked" >"$tmp/out" 2>&1
+expect_eq 'the branch goes with its last worktree' '' "$(git branch --list delete-shared)"
 
 git worktree add -q -b delete-parent "$tmp/parent"
 git worktree add -q -b delete-child "$tmp/parent/child"
 read_worktrees
-candidates=$(prune_candidates all)
-is 'picker protects folders containing another worktree' '' "$(printf '%s\n' "$candidates" | awk -F'\t' '$1 == "delete-parent"')"
-has 'nested worktree can be selected separately' 'delete-child' "$candidates"
+menu=$(prune_candidates all)
+expect_eq 'the menu leaves out a folder with a worktree inside' '' "$(awk -F'\t' '$1 == "delete-parent"' <<<"$menu")"
+expect_in 'the menu offers the inner worktree' 'delete-child' "$menu"
 
 git branch gone-plain
 git worktree add -q -b gone-worktree "$tmp/gone"
@@ -354,40 +352,40 @@ for branch in gone-plain gone-worktree delete-locked main; do
 done
 git branch --set-upstream-to=origin/main kept-worktree >/dev/null
 read_worktrees
-selected=$(prune_candidates gone)
-has 'dbm candidates include plain branches' $'gone-plain\tbranch\t[branch]' "$selected"
-has 'dbm candidates include worktrees' "[worktree] $tmp/gone" "$selected"
-is 'dbm excludes locked worktrees' '' "$(printf '%s\n' "$selected" | grep -F delete-locked || true)"
-is 'dbm excludes current branches with gone upstreams' '' "$(printf '%s\n' "$selected" | awk -F'\t' '$1 == "main"')"
-is 'dbm keeps branches with existing upstreams' '' "$(printf '%s\n' "$selected" | grep -F kept-worktree || true)"
+picked=$(prune_candidates gone)
+expect_in 'the dbm list holds plain branches' $'gone-plain\tbranch\t[branch]' "$picked"
+expect_in 'the dbm list holds worktrees' "[worktree] $tmp/gone" "$picked"
+expect_eq 'the dbm list leaves out locked worktrees' '' "$(grep -F delete-locked <<<"$picked" || true)"
+expect_eq 'the dbm list leaves out the current branch' '' "$(awk -F'\t' '$1 == "main"' <<<"$picked")"
+expect_eq 'the dbm list leaves out branches whose upstream exists' '' "$(grep -F kept-worktree <<<"$picked" || true)"
 git branch prune-only
 git push -qu origin prune-only
 git --git-dir="$tmp/origin.git" update-ref -d refs/heads/prune-only
-# Replace only the terminal prompt in a test copy of the command.
+# A copy of the alias, with the stub in place of the terminal question.
 mkdir -p "$tmp/aliases/bin"
-cp "$root/bin/git-dbm" "$root/bin/_shared.sh" "$root/bin/_prune.sh" "$tmp/aliases/bin/"
+cp "$repo/bin/git-dbm" "$repo/bin/_shared.sh" "$repo/bin/_prune.sh" "$tmp/aliases/bin/"
 declare -f ask_yes >>"$tmp/aliases/bin/_prune.sh"
-export delete_answer=yes
-git -c gitaliases.dir="$tmp/aliases" dbm >"$tmp/delete-output" 2>&1
-has 'git dbm displays branch labels' 'gone-plain [branch]' "$(<"$tmp/delete-output")"
-has 'git dbm displays worktree labels' "gone-worktree [worktree] $tmp/gone" "$(<"$tmp/delete-output")"
-is 'dbm deletion removes gone branches' '' "$(git branch --list 'gone-*')"
-is 'git dbm fetches and prunes before finding candidates' '' "$(git branch --list prune-only)"
-is 'dbm deletion removes gone worktree folders' no "$([ -e "$tmp/gone" ] && echo yes || echo no)"
-is 'dbm leaves locked worktree files' yes "$([ -e "$tmp/locked/file.txt" ] && echo yes || echo no)"
-is 'dbm leaves worktrees with a live upstream' yes "$([ -e "$tmp/kept/file.txt" ] && echo yes || echo no)"
-is 'worktree cleanup keeps shared stash entries' "$shared_stash" "$(git rev-parse refs/stash)"
+export answer_yes=yes
+git -c gitaliases.dir="$tmp/aliases" dbm >"$tmp/out" 2>&1
+expect_in 'git dbm prints the branch labels' 'gone-plain [branch]' "$(<"$tmp/out")"
+expect_in 'git dbm prints the worktree labels' "gone-worktree [worktree] $tmp/gone" "$(<"$tmp/out")"
+expect_eq 'git dbm deletes the gone branches' '' "$(git branch --list 'gone-*')"
+expect_eq 'git dbm prunes before it builds the list' '' "$(git branch --list prune-only)"
+expect_eq 'git dbm deletes the gone worktree folders' no "$(exists "$tmp/gone")"
+expect_eq 'git dbm leaves the locked worktree files' yes "$(exists "$tmp/locked/file.txt")"
+expect_eq 'git dbm leaves a worktree whose upstream exists' yes "$(exists "$tmp/kept/file.txt")"
+expect_eq 'removing worktrees keeps the shared stash' "$stash_before" "$(git rev-parse refs/stash)"
 
 git branch --set-upstream-to=origin/main main >/dev/null
 
-expected=$(git config --file "$root/aliases.gitconfig" --name-only --get-regexp '^alias\.' | grep -c .)
-is 'git a lists every alias' "$expected" "$(git a | grep -c 'bin/git-')"
+alias_total=$(git config --file "$repo/aliases.gitconfig" --name-only --get-regexp '^alias\.' | grep -c .)
+expect_eq 'git a lists each alias' "$alias_total" "$(git a | grep -c 'bin/git-')"
 
 # ----------------------------------------------------------------------------
 
-if [ "$failures" -gt 0 ]; then
-	printf '\n%d of %d checks failed\n' "$failures" "$checks" >&2
+if ((failures)); then
+	printf '\n%d of %d checks failed\n' "$failures" "$total" >&2
 	exit 1
 fi
 
-printf 'ok: %d checks\n' "$checks"
+printf 'ok: %d checks\n' "$total"
