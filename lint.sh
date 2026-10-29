@@ -1,158 +1,166 @@
 #!/usr/bin/env bash
-# Checks that the aliases keep their shape: one script per alias, a description
-# comment on every script, a row in the README, and clean shell.
+# Fails when the repo drifts from its rules: each alias runs a bin/ script, each
+# script describes itself and has an alias and a README row, and the shell is clean.
 set -euo pipefail
 
-root=$(cd "$(dirname "$0")" && pwd)
-cd "$root"
+repo=$(cd "$(dirname "$0")" && pwd)
+cd "$repo"
 
-config='aliases.gitconfig'
+index='aliases.gitconfig'
 readme='README.md'
-# shellcheck disable=SC2016  # this is the literal alias body, nothing to expand
-prefix='!"$(git config gitaliases.dir)"/bin/'
-
-failures=0
-
-fail() {
-	printf 'FAIL %s\n' "$*" >&2
-	failures=$((failures + 1))
-}
-
-# Windows has no exec bit, so a tracked file is judged by the mode git stores.
-executable() {
-	local mode
-	mode=$(git ls-files --stage -- "$1" | cut -c1-6)
-	if [ -n "$mode" ]; then
-		[ "$mode" = 100755 ]
-	else
-		[ -x "$1" ]
-	fi
-}
-
+# shellcheck disable=SC2016  # the alias text itself, which git expands later
+alias_prefix='!"$(git config gitaliases.dir)"/bin/'
 chmod_hint='run chmod +x, or on Windows git update-index --chmod=+x'
 
-# --- aliases.gitconfig ------------------------------------------------------
+problems=0
+alias_names=()
+alias_scripts=()
 
-names=()
-scripts=()
-while IFS= read -r -d '' entry; do
-	name=${entry%%$'\n'*}
-	name=${name#alias.}
-	value=${entry#*$'\n'}
+main() {
+	check_index
+	check_scripts
+	check_readme
+	run_shellcheck
+	run_shfmt
+	parse_powershell
 
-	if [[ $value != "$prefix"* ]]; then
-		fail "$config: alias '$name' does not run a bin/ script: $value"
-		continue
+	if ((problems)); then
+		printf '\n%d problem(s)\n' "$problems" >&2
+		exit 1
 	fi
+	printf 'ok: %d aliases, %d scripts\n' "${#alias_names[@]}" "$(count_scripts)"
+}
 
-	script=${value#"$prefix"}
-	if [[ ! $script =~ ^git-[a-z0-9-]+$ ]]; then
-		fail "$config: alias '$name' has an odd script name: $script"
-		continue
+problem() {
+	printf 'FAIL %s\n' "$*" >&2
+	problems=$((problems + 1))
+}
+
+# NTFS has no exec bit, so a tracked file goes by the mode git stored for it.
+is_executable() {
+	local mode
+	mode=$(git ls-files --stage -- "$1" | cut -c1-6)
+	if [[ -n $mode ]]; then
+		[[ $mode == 100755 ]]
+	else
+		[[ -x $1 ]]
 	fi
-	[ -f "bin/$script" ] || fail "$config: alias '$name' points at missing bin/$script"
+}
 
-	names+=("$name")
-	scripts+=("$script")
-done < <(git config --file "$config" --null --get-regexp '^alias\.')
+count_scripts() {
+	local scripts=(bin/git-*)
+	printf '%d\n' "${#scripts[@]}"
+}
 
-[ ${#names[@]} -gt 0 ] || fail "$config: no aliases found"
+# Reads each alias, checks it runs bin/git-<script>, and keeps the name and the
+# script for the later checks.
+check_index() {
+	local entry alias_name command script line
+	while IFS= read -r -d '' entry; do
+		alias_name=${entry%%$'\n'*}
+		alias_name=${alias_name#alias.}
+		command=${entry#*$'\n'}
 
-sorted=$(printf '%s\n' ${names[@]+"${names[@]}"} | LC_ALL=C sort)
-if [ "$sorted" != "$(printf '%s\n' ${names[@]+"${names[@]}"})" ]; then
-	fail "$config: aliases are not sorted alphabetically"
-fi
-
-while IFS= read -r line; do
-	case $line in
-		'' | '#'* | '[alias]') continue ;;
-		$'\t'*' = "!'*'"') continue ;;
-		*) fail "$config: line is not <tab>name = \"!...\": $line" ;;
-	esac
-done <"$config"
-
-# --- scripts ----------------------------------------------------------------
-
-script_count=0
-for script in bin/git-*; do
-	script_count=$((script_count + 1))
-	executable "$script" || fail "$script: not executable, $chmod_hint"
-
-	first=$(head -n 1 "$script")
-	[ "$first" = '#!/usr/bin/env bash' ] || fail "$script: first line must be #!/usr/bin/env bash"
-
-	second=$(sed -n '2p' "$script")
-	case $second in
-		'# '?*) ;;
-		*) fail "$script: line 2 must be a '# ' description comment" ;;
-	esac
-
-	grep -qx 'set -euo pipefail' "$script" || fail "$script: missing 'set -euo pipefail'"
-
-	name=${script#bin/}
-	found=0
-	for used in ${scripts[@]+"${scripts[@]}"}; do
-		if [ "$used" = "$name" ]; then
-			found=1
+		if [[ $command != "$alias_prefix"* ]]; then
+			problem "$index: alias '$alias_name' does not run a bin/ script: $command"
+			continue
 		fi
+		script=${command#"$alias_prefix"}
+		if [[ ! $script =~ ^git-[a-z0-9-]+$ ]]; then
+			problem "$index: alias '$alias_name' has an odd script name: $script"
+			continue
+		fi
+		[[ -f bin/$script ]] || problem "$index: alias '$alias_name' points at missing bin/$script"
+
+		alias_names+=("$alias_name")
+		alias_scripts+=("$script")
+	done < <(git config --file "$index" --null --get-regexp '^alias\.')
+
+	((${#alias_names[@]})) || problem "$index: no aliases found"
+
+	local listed
+	listed=$(printf '%s\n' ${alias_names[@]+"${alias_names[@]}"})
+	[[ $listed == "$(LC_ALL=C sort <<<"$listed")" ]] || problem "$index: aliases are not sorted alphabetically"
+
+	while IFS= read -r line; do
+		case $line in
+			'' | '#'* | '[alias]' | $'\t'*' = "!'*'"') ;;
+			*) problem "$index: line is not <tab>name = \"!...\": $line" ;;
+		esac
+	done <"$index"
+}
+
+check_scripts() {
+	local script helper entry
+	for script in bin/git-*; do
+		is_executable "$script" || problem "$script: not executable, $chmod_hint"
+		[[ $(head -n 1 "$script") == '#!/usr/bin/env bash' ]] || problem "$script: first line must be #!/usr/bin/env bash"
+		[[ $(sed -n '2p' "$script") == '# '?* ]] || problem "$script: line 2 must be a '# ' description comment"
+		grep -qx 'set -euo pipefail' "$script" || problem "$script: missing 'set -euo pipefail'"
+		is_aliased "${script#bin/}" || problem "$script: no alias in $index runs it"
 	done
-	[ "$found" = 1 ] || fail "$script: no alias in $config runs it"
-done
 
-for helper in bin/_*.sh; do
-	! executable "$helper" || fail "$helper: sourced, not run, so it should not be executable"
-done
+	for helper in bin/_*.sh; do
+		! is_executable "$helper" || problem "$helper: sourced, not run, so it should not be executable"
+	done
 
-for script in install.sh lint.sh test.sh hooks/pre-commit; do
-	executable "$script" || fail "$script: not executable, $chmod_hint"
-done
+	for entry in install.sh lint.sh test.sh hooks/pre-commit; do
+		is_executable "$entry" || problem "$entry: not executable, $chmod_hint"
+	done
+}
 
-# --- README -----------------------------------------------------------------
+is_aliased() {
+	local used
+	for used in ${alias_scripts[@]+"${alias_scripts[@]}"}; do
+		[[ $used == "$1" ]] && return 0
+	done
+	return 1
+}
 
-for name in ${names[@]+"${names[@]}"}; do
-	grep -qF "\`$name\`" "$readme" || fail "$readme: alias '$name' is not documented"
-done
+check_readme() {
+	local alias_name
+	for alias_name in ${alias_names[@]+"${alias_names[@]}"}; do
+		grep -qF "\`$alias_name\`" "$readme" || problem "$readme: alias '$alias_name' is not documented"
+	done
+}
 
-# --- shell tooling ----------------------------------------------------------
-
-if command -v shellcheck >/dev/null 2>&1; then
-	shellcheck --external-sources bin/* ./*.sh hooks/* || fail 'shellcheck reported problems'
-else
-	echo 'skipped shellcheck (not installed: brew install shellcheck)'
-fi
-
-if command -v shfmt >/dev/null 2>&1; then
-	shfmt --diff --case-indent bin/* ./*.sh hooks/* ||
-		fail 'shfmt reported formatting problems, run: shfmt --write --case-indent bin/* ./*.sh hooks/*'
-else
-	echo 'skipped shfmt (not installed: brew install shfmt)'
-fi
-
-powershell=''
-for candidate in pwsh powershell; do
-	if command -v "$candidate" >/dev/null 2>&1; then
-		powershell=$candidate
-		break
+run_shellcheck() {
+	if ! command -v shellcheck >/dev/null 2>&1; then
+		echo 'skipped shellcheck (not installed: brew install shellcheck)'
+		return 0
 	fi
-done
-if [ -n "$powershell" ]; then
-	for script in ./*.ps1 shell/*.ps1; do
+	shellcheck --external-sources bin/* ./*.sh hooks/* || problem 'shellcheck reported problems'
+}
+
+run_shfmt() {
+	if ! command -v shfmt >/dev/null 2>&1; then
+		echo 'skipped shfmt (not installed: brew install shfmt)'
+		return 0
+	fi
+	shfmt --diff --case-indent bin/* ./*.sh hooks/* ||
+		problem 'shfmt reported formatting problems, run: shfmt --write --case-indent bin/* ./*.sh hooks/*'
+}
+
+# PowerShell 7 comes first, then Windows PowerShell.
+parse_powershell() {
+	local shell_exe='' candidate file
+	for candidate in pwsh powershell; do
+		command -v "$candidate" >/dev/null 2>&1 || continue
+		shell_exe=$candidate
+		break
+	done
+	if [[ -z $shell_exe ]]; then
+		echo 'skipped the PowerShell parse (not installed: brew install powershell)'
+		return 0
+	fi
+	for file in ./*.ps1 shell/*.ps1; do
 		# shellcheck disable=SC2016  # PowerShell expands these, bash must not
-		ps1_file=$script "$powershell" -NoProfile -Command '$errors = $null
+		ps1_file=$file "$shell_exe" -NoProfile -Command '$errors = $null
 			$path = (Resolve-Path -LiteralPath $env:ps1_file).Path
 			[void][System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$null, [ref]$errors)
 			$errors | ForEach-Object { "$($_.Extent.StartLineNumber): $($_.Message)" }
-			exit $errors.Count' || fail "$script: PowerShell can't parse it"
+			exit $errors.Count' || problem "$file: PowerShell can't parse it"
 	done
-else
-	echo 'skipped the PowerShell parse (not installed: brew install powershell)'
-fi
+}
 
-# ----------------------------------------------------------------------------
-
-if [ "$failures" -gt 0 ]; then
-	printf '\n%d problem(s)\n' "$failures" >&2
-	exit 1
-fi
-
-printf 'ok: %d aliases, %d scripts\n' "${#names[@]}" "$script_count"
+main
