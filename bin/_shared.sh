@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Shared helpers for the git-* scripts next to this file. Not an alias itself.
+# Sourced by every git-* script beside it. It holds no alias of its own.
+# shellcheck disable=SC2034  # each script reads only some of the colours
 
-# shellcheck disable=SC2034  # each script uses a different subset of the colours
-if [ -z "${NO_COLOR:-}" ] && { [ -t 1 ] || [ -t 2 ]; }; then
+# Colour goes to a terminal only, and NO_COLOR turns it off.
+if [[ -z ${NO_COLOR:-} ]] && [[ -t 1 || -t 2 ]]; then
 	CLR_OFF=$'\033[0m'
 	CLR_COMMAND=$'\033[1;36m'
 	CLR_PROMPT=$'\033[1;33m'
@@ -12,7 +13,10 @@ else
 	CLR_OFF='' CLR_COMMAND='' CLR_PROMPT='' CLR_FAINT='' CLR_HINT=''
 fi
 
-# Echo a command the way a shell prompt would, then run it.
+# fzf fills {1} with the branch of the highlighted line.
+log_preview='git log -n 20 --color=always --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1}'
+
+# Prints "+ <command>" on stderr, as a shell with xtrace would.
 trace() {
 	printf '%s+%s %s%s%s\n' "$CLR_PROMPT" "$CLR_OFF" "$CLR_COMMAND" "$*" "$CLR_OFF" >&2
 }
@@ -31,26 +35,26 @@ report_warning() {
 	printf '%swarning:%s %s\n' "$CLR_HINT" "$CLR_OFF" "$*" >&2
 }
 
-# How the alias is called: the argument shape, then a line per flag. Exits 1,
-# the way git itself answers -h.
+# Prints the synopsis in $1 and one line per later argument, then exits 1
+# the way git does for -h.
 show_usage() {
-	local name=${0##*/}
-	name=${name#git-}
-	printf 'usage: git %s %s\n' "$name" "$1" >&2
+	local alias_name=${0##*/}
+	alias_name=${alias_name#git-}
+	printf 'usage: git %s %s\n' "$alias_name" "$1" >&2
 	shift
-	if [ "$#" -gt 0 ]; then
+	if (($#)); then
 		printf '\n' >&2
 		printf '  %s\n' "$@" >&2
 	fi
 	exit 1
 }
 
-# Ask on the terminal, not on stdin, so it works inside a pipeline.
+# Reads the answer from the terminal, so a pipe on stdin can't answer for the person.
 ask_yes() {
-	local answer
+	local reply
 	printf '%s [y/N] ' "$*" >&2
-	read -r answer </dev/tty || return 1
-	case $answer in
+	read -r reply </dev/tty || return 1
+	case $reply in
 		y | Y | yes | YES) return 0 ;;
 		*) return 1 ;;
 	esac
@@ -60,35 +64,32 @@ need_command() {
 	command -v "$1" >/dev/null 2>&1 || abort "$1 is required, but it isn't installed"
 }
 
-# origin when it exists, otherwise the only remote there is.
+# Prints origin, or the single remote when origin is missing.
 pick_remote() {
-	local remotes
-	if git remote get-url origin >/dev/null 2>&1; then
+	git remote get-url origin >/dev/null 2>&1 && {
 		printf 'origin\n'
 		return 0
-	fi
-	remotes=$(git remote)
-	if [ "$(printf '%s' "$remotes" | grep -c .)" = 1 ]; then
-		printf '%s\n' "$remotes"
+	}
+	local all_remotes
+	all_remotes=$(git remote)
+	if [[ $(printf '%s' "$all_remotes" | grep -c .) == 1 ]]; then
+		printf '%s\n' "$all_remotes"
 		return 0
 	fi
 	abort 'no remote called origin, and more than one to choose from'
 }
 
-# The branch that remote points at, falling back to master then main.
+# Prints the branch <remote>/HEAD names. Without it, master, then main.
 remote_head_branch() {
-	local remote=$1 ref branch
-	if ref=$(git symbolic-ref --quiet "refs/remotes/$remote/HEAD" 2>/dev/null); then
-		printf '%s\n' "${ref#refs/remotes/"$remote"/}"
+	local remote=$1 head_ref fallback
+	if head_ref=$(git symbolic-ref --quiet "refs/remotes/$remote/HEAD" 2>/dev/null); then
+		printf '%s\n' "${head_ref#refs/remotes/"$remote"/}"
 		return 0
 	fi
-	for branch in master main; do
-		if git show-ref --verify --quiet "refs/remotes/$remote/$branch"; then
-			printf '%s\n' "$branch"
-			return 0
-		fi
+	for fallback in master main; do
+		git show-ref --verify --quiet "refs/remotes/$remote/$fallback" || continue
+		printf '%s\n' "$fallback"
+		return 0
 	done
 	abort "no $remote/HEAD, $remote/master or $remote/main found, run: git remote set-head $remote --auto"
 }
-
-log_preview='git log -n 20 --color=always --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1}'
