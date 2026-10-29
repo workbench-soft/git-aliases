@@ -8,20 +8,21 @@ set -euo pipefail
 need_command fzf
 
 read_worktrees
-candidates=$(prune_candidates all)
-[ -n "$candidates" ] || {
+choices=$(prune_candidates all)
+if [[ -z $choices ]]; then
 	echo 'No branches or worktrees to delete.'
 	exit 0
-}
+fi
 
-selected=$(
-	printf '%s\n' "$candidates" |
+# fzf shows columns 1 and 3, and hides the worktree slot in column 2.
+# Esc, or Enter on an empty pick, ends the alias with nothing deleted.
+picked=$(
+	printf '%s\n' "$choices" |
 		fzf --multi --height=40% --reverse \
 			--delimiter=$'\t' --with-nth=1,3.. \
 			--header='TAB to multi-select, Enter to delete branches and worktree folders' \
 			--preview "$log_preview"
 ) || exit 0
+[[ -n $picked ]] || exit 0
 
-[ -n "$selected" ] || exit 0
-
-prune_selected "$selected"
+prune_selected "$picked"

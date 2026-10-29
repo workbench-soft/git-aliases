@@ -2,4 +2,4 @@
 # Show the last commit with its diff.
 set -euo pipefail
 
-git show HEAD
+exec git show HEAD

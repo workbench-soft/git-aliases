@@ -5,29 +5,29 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-opts=()
-message=()
-rest_is_message=0
-
-args='[git commit flags] [--] <message>'
-notes=(
+synopsis='[git commit flags] [--] <message>'
+flag_help=(
 	'flags are passed straight to git commit, say --amend or --no-verify'
 	'-- makes everything after it message, even if it starts with a dash'
 )
 
+commit_flags=()
+words=()
+past_dashes=0
 for arg in "$@"; do
-	if [ "$rest_is_message" = 1 ]; then
-		message+=("$arg")
+	if ((past_dashes)); then
+		words+=("$arg")
 		continue
 	fi
 	case $arg in
-		-h | --help) show_usage "$args" "${notes[@]}" ;;
-		--) rest_is_message=1 ;;
-		-*) opts+=("$arg") ;;
-		*) message+=("$arg") ;;
+		-h | --help) show_usage "$synopsis" "${flag_help[@]}" ;;
+		--) past_dashes=1 ;;
+		-*) commit_flags+=("$arg") ;;
+		*) words+=("$arg") ;;
 	esac
 done
 
-[ ${#message[@]} -gt 0 ] || show_usage "$args" "${notes[@]}"
+((${#words[@]})) || show_usage "$synopsis" "${flag_help[@]}"
 
-trace_run git commit ${opts[@]+"${opts[@]}"} -m "${message[*]}"
+# Bash before 4.4 calls an empty "${array[@]}" unbound under set -u.
+trace_run git commit ${commit_flags[@]+"${commit_flags[@]}"} -m "${words[*]}"

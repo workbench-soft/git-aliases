@@ -4,32 +4,36 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-root=$(cd "$(dirname "$0")/.." && pwd)
-config="$root/aliases.gitconfig"
-[ -f "$config" ] || abort "no aliases.gitconfig next to $0"
+repo=$(cd "$(dirname "$0")/.." && pwd)
+index="$repo/aliases.gitconfig"
+[[ -f $index ]] || abort "no aliases.gitconfig next to $0"
 
-# The comment block under the shebang of a git-* script.
+main() {
+	if [[ -t 1 ]] && command -v less >/dev/null 2>&1; then
+		print_aliases | less -R
+	else
+		print_aliases
+	fi
+}
+
+# git config -z prints each entry as "alias.<name>\n<command>\0".
+print_aliases() {
+	local entry alias_name script summary_line
+	while IFS= read -r -d '' entry; do
+		alias_name=${entry%%$'\n'*}
+		alias_name=${alias_name#alias.}
+		script=${entry##*/}
+		printf '%s%-8s%s %sbin/%s%s\n' "$CLR_COMMAND" "$alias_name" "$CLR_OFF" "$CLR_FAINT" "$script" "$CLR_OFF"
+		while IFS= read -r summary_line; do
+			printf '  %s%s%s\n' "$CLR_HINT" "$summary_line" "$CLR_OFF"
+		done < <(script_summary "$repo/bin/$script")
+		printf '\n'
+	done < <(git config --file "$index" --null --get-regexp '^alias\.')
+}
+
+# The comment lines right under the shebang, without their "# ".
 script_summary() {
 	awk 'NR == 1 {next} /^#/ {sub(/^# ?/, ""); print; next} {exit}' "$1"
 }
 
-render() {
-	local entry name value script line
-	while IFS= read -r -d '' entry; do
-		name=${entry%%$'\n'*}
-		name=${name#alias.}
-		value=${entry#*$'\n'}
-		script=${value##*/}
-		printf '%s%-8s%s %sbin/%s%s\n' "$CLR_COMMAND" "$name" "$CLR_OFF" "$CLR_FAINT" "$script" "$CLR_OFF"
-		while IFS= read -r line; do
-			printf '  %s%s%s\n' "$CLR_HINT" "$line" "$CLR_OFF"
-		done < <(script_summary "$root/bin/$script")
-		printf '\n'
-	done < <(git config --file "$config" --null --get-regexp '^alias\.')
-}
-
-if [ -t 1 ] && command -v less >/dev/null 2>&1; then
-	render | less -R
-else
-	render
-fi
+main

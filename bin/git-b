@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Print the current branch name.
 set -euo pipefail
-# shellcheck source=bin/_shared.sh
-. "$(dirname "$0")/_shared.sh"
 
-git branch --show-current
+# A detached HEAD prints an empty line.
+exec git branch --show-current

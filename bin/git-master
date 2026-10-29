@@ -5,9 +5,9 @@ set -euo pipefail
 . "$(dirname "$0")/_shared.sh"
 
 remote=$(pick_remote)
-branch=$(remote_head_branch "$remote")
+target=$(remote_head_branch "$remote")
 
-if [ -n "$(git status --porcelain)" ]; then
+if [[ -n $(git status --porcelain) ]]; then
 	echo 'You have local changes:'
 	git status --short
 	ask_yes 'Drop all local changes?' || abort 'aborted'
@@ -15,12 +15,12 @@ if [ -n "$(git status --porcelain)" ]; then
 	trace_run git clean -fd
 fi
 
-trace_run git fetch "$remote" "$branch"
+trace_run git fetch "$remote" "$target"
 
-if git show-ref --verify --quiet "refs/heads/$branch"; then
-	trace_run git checkout "$branch"
+if git show-ref --verify --quiet "refs/heads/$target"; then
+	trace_run git checkout "$target"
 else
-	trace_run git checkout -b "$branch" --track "$remote/$branch"
+	trace_run git checkout -b "$target" --track "$remote/$target"
 fi
 
-trace_run git reset --hard "$remote/$branch"
+trace_run git reset --hard "$remote/$target"

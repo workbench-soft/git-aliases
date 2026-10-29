@@ -4,7 +4,8 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-branch=$(git branch --show-current)
-[ -n "$branch" ] || abort 'detached HEAD, nothing to pull'
+current=$(git branch --show-current)
+[[ -n $current ]] || abort 'detached HEAD, nothing to pull'
 
-trace_run git pull --rebase "$(pick_remote)" "$branch"
+# Naming the remote branch outright lets a branch with no upstream pull too.
+trace_run git pull --rebase "$(pick_remote)" "$current"

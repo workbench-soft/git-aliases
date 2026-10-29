@@ -4,5 +4,6 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
+# Ignored files stay, since clean runs without -x.
 trace_run git reset --hard HEAD
 trace_run git clean -fd

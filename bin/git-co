@@ -4,22 +4,21 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-args='<branch>'
-notes=(
+synopsis='<branch>'
+flag_help=(
 	'switches to the branch, or fetches it from the remote when it is not local yet'
 )
 
-case ${1:-} in
-	-h | --help) show_usage "$args" "${notes[@]}" ;;
+wanted=${1:-}
+case $wanted in
+	-h | --help | '') show_usage "$synopsis" "${flag_help[@]}" ;;
 esac
 
-branch=${1:-}
-[ -n "$branch" ] || show_usage "$args" "${notes[@]}"
-
-if git show-ref --verify --quiet "refs/heads/$branch"; then
-	trace_run git checkout "$branch"
-else
-	remote=$(pick_remote)
-	trace_run git fetch "$remote" "$branch"
-	trace_run git checkout -b "$branch" "$remote/$branch"
+if git show-ref --verify --quiet "refs/heads/$wanted"; then
+	trace_run git checkout "$wanted"
+	exit 0
 fi
+
+remote=$(pick_remote)
+trace_run git fetch "$remote" "$wanted"
+trace_run git checkout -b "$wanted" "$remote/$wanted"

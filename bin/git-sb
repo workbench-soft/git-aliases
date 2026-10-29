@@ -10,40 +10,47 @@ need_command fzf
 
 here=$(git rev-parse --show-toplevel)
 
-# "W<tab>branch<tab>worktree path" for every branch that a worktree holds.
-worktree_branches() {
-	git worktree list --porcelain |
-		awk '/^worktree /{path = substr($0, 10)} /^branch refs\/heads\//{print "W\t" substr($0, 19) "\t" path}'
+main() {
+	local choice branch home
+	choice=$(picker_lines | fzf --ansi --height=40% --reverse --prompt='branch> ' --preview "$log_preview") || exit 0
+	[[ -n $choice ]] || exit 0
+	branch=${choice%% *}
+
+	home=$(worktree_of "$branch")
+	if [[ -n $home && $home != "$here" ]]; then
+		trace "$branch is checked out at $home"
+		printf '__cd__ %s\n' "$home"
+		exit 0
+	fi
+	trace_run git checkout "$branch"
 }
 
-line=$(
+# Newest branch first, each followed by the folder of the worktree that holds it.
+picker_lines() {
 	{
-		worktree_branches
+		held_branches
 		git for-each-ref --sort=-committerdate --format='B%09%(refname:short)' refs/heads/
-	} |
-		awk -F'\t' -v here="$here" '
-			$1 == "W" { worktree[$2] = $3; next }
-			{
-				path = worktree[$2]
-				if (path == "") print $2
-				else if (path == here) printf "%-50s \033[38;5;240m(this worktree)\033[0m\n", $2
-				else printf "%-50s \033[38;5;240m%s\033[0m\n", $2, path
-			}' |
-		fzf --ansi --height=40% --reverse --prompt='branch> ' --preview "$log_preview"
-) || exit 0
+	} | awk -F'\t' -v here="$here" '
+		$1 == "W" { folder[$2] = $3; next }
+		{
+			where = folder[$2]
+			if (where == "") print $2
+			else if (where == here) printf "%-50s \033[38;5;240m(this worktree)\033[0m\n", $2
+			else printf "%-50s \033[38;5;240m%s\033[0m\n", $2, where
+		}'
+}
 
-[ -n "$line" ] || exit 0
-branch=${line%% *}
+# "W<tab><branch><tab><folder>" for each branch a worktree has checked out.
+held_branches() {
+	git worktree list --porcelain |
+		awk '/^worktree /{folder = substr($0, 10)} /^branch refs\/heads\//{print "W\t" substr($0, 19) "\t" folder}'
+}
 
-worktree=$(git worktree list --porcelain |
-	awk -v ref="refs/heads/$branch" '
-		/^worktree /{path = substr($0, 10)}
-		/^branch /{if (substr($0, 8) == ref) {print path; exit}}')
+worktree_of() {
+	git worktree list --porcelain |
+		awk -v ref="refs/heads/$1" '
+			/^worktree /{folder = substr($0, 10)}
+			/^branch /{if (substr($0, 8) == ref) {print folder; exit}}'
+}
 
-if [ -n "$worktree" ] && [ "$worktree" != "$here" ]; then
-	trace "$branch is checked out at $worktree"
-	printf '__cd__ %s\n' "$worktree"
-	exit 0
-fi
-
-trace_run git checkout "$branch"
+main

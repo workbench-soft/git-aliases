@@ -6,17 +6,18 @@ set -euo pipefail
 # shellcheck source=bin/_prune.sh
 . "$(dirname "$0")/_prune.sh"
 
+# After the prune, git marks a branch whose remote branch is deleted as [gone].
 trace_run git fetch --prune
 
 read_worktrees
-selected=$(prune_candidates gone)
-if [ -z "$selected" ]; then
+doomed=$(prune_candidates gone)
+if [[ -z $doomed ]]; then
 	echo 'No deletable branches or worktrees with a gone upstream.'
 	exit 0
 fi
 
 echo 'Branches and worktrees whose remote branch was deleted:'
-printf '%s\n' "$selected" | awk -F'\t' '{print "  " $1 " " $3}'
+awk -F'\t' '{print "  " $1 " " $3}' <<<"$doomed"
 ask_yes 'Delete these branches and worktree folders?' || abort 'aborted'
 
-prune_selected "$selected"
+prune_selected "$doomed"

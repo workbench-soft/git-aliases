@@ -4,20 +4,21 @@ set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
 
-args='<branch name>'
-notes=(
+synopsis='<branch name>'
+flag_help=(
 	'the name is lowercased, and anything but a-z 0-9 / _ . - becomes a hyphen'
 	'git cb "Fix the Parser!" creates fix-the-parser'
 )
 
 case ${1:-} in
-	-h | --help) show_usage "$args" "${notes[@]}" ;;
+	-h | --help) show_usage "$synopsis" "${flag_help[@]}" ;;
 esac
 
-name=$(printf '%s' "$*" |
+# A run of other characters turns into one hyphen, and the ends lose theirs.
+slug=$(printf '%s' "$*" |
 	tr '[:upper:]' '[:lower:]' |
 	sed -E 's|[^a-z0-9/_.-]+|-|g; s/^-+|-+$//g; s/-+/-/g')
 
-[ -n "$name" ] || show_usage "$args" "${notes[@]}"
+[[ -n $slug ]] || show_usage "$synopsis" "${flag_help[@]}"
 
-trace_run git checkout -b "$name"
+trace_run git checkout -b "$slug"
