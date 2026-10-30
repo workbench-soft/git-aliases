@@ -44,5 +44,5 @@ sequenceDiagram
   `$PROFILE`.
 - **Outside services** only the git remote, through `git fetch`, `git push`
   and `git pull`.
-- **CI** `lint.yml` runs `lint.sh` and `test.sh` on each push to main, on a
-  self-hosted Windows runner.
+- **CI** `lint.yml` runs `lint.sh` and `test.sh` on each push and PR, on GitHub
+  Linux and Windows runners.

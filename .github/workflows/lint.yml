@@ -12,23 +12,29 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# A PR from a fork gets a read-only token.
+permissions:
+  contents: read
+
 # Without this, steps on Windows run in PowerShell.
 defaults:
   run:
     shell: bash
 
 jobs:
-  # A private repo pays for hosted minutes, so the job runs on the Windows PC for free.
-  # Each action is pinned to a commit, since a moved tag would run on that PC.
+  # The repo is public, so GitHub runners cost nothing. Git Bash and Linux both
+  # run the aliases, so both get checked.
   lint:
-    runs-on: [self-hosted, local]
-    # A hung step would hold the PC runner for the 6 hour default.
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - name: Install shfmt and shellcheck
         run: |
-          command -v shfmt || winget.exe install --id mvdan.shfmt --exact --silent --accept-source-agreements --accept-package-agreements
-          command -v shellcheck || winget.exe install --id koalaman.shellcheck --exact --silent --accept-source-agreements --accept-package-agreements
+          if command -v apt-get; then sudo apt-get update -q && sudo apt-get install -yq shfmt shellcheck
+          else choco install -y --no-progress shfmt shellcheck; fi
       - run: ./lint.sh
       - run: ./test.sh
