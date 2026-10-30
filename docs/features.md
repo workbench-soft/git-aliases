@@ -30,3 +30,9 @@ Short git aliases, ready for any machine.
 - **What it gives** sets up git config and asks before each change. A second run is safe.
 - **Where** `install.sh` on macOS and Linux, `install.ps1` on Windows.
 - **Limits** with no terminal, each question gets a no.
+
+## Releases
+
+- **What it gives** a tagged release such as `v2026.10.30.1` for each push to `main` that passes `lint`. Its notes list the commits since the release before.
+- **Where** the [Releases page](https://github.com/workbench-soft/git-aliases/releases).
+- **Limits** notes only, with no files to download.
