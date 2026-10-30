@@ -22,6 +22,7 @@ flowchart LR
 | Installers | `install.sh`, `install.ps1` | Wire up `~/.gitconfig`, the shell function and the hook |
 | Shell functions | `shell/git-sb.zsh`, `shell/git-sb.ps1` | Turn the `__cd__ <path>` line of `git sb` into a `cd` |
 | Checks | `lint.sh`, `test.sh`, `hooks/pre-commit`, `.github/workflows/lint.yml` | Keep the scripts working |
+| Release | `.github/workflows/release.yml`, `.github/scripts/` | Tags each push to main that passes lint and publishes its notes |
 
 ## The path of one call
 
@@ -46,3 +47,5 @@ sequenceDiagram
   and `git pull`.
 - **CI** `lint.yml` runs `lint.sh` and `test.sh` on each push and PR, on GitHub
   Linux and Windows runners.
+- **Release** `release.yml` tags each push to main that passes `lint` and
+  publishes its notes, on a GitHub Linux runner.
