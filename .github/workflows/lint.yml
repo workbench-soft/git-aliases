@@ -19,10 +19,11 @@ defaults:
 
 jobs:
   # A private repo pays for hosted minutes, so the job runs on the Windows PC for free.
+  # Each action is pinned to a commit, since a moved tag would run on that PC.
   lint:
     runs-on: [self-hosted, local]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - name: Install shfmt and shellcheck
         run: |
           command -v shfmt || winget.exe install --id mvdan.shfmt --exact --silent --accept-source-agreements --accept-package-agreements
