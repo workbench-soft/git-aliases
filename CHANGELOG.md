@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **CI** stops a job after 20 minutes. A normal run takes about 1 minute.
 - **CI** pins `actions/checkout` to the v5.1.0 commit, so a moved tag can't run new code on the Windows PC runner.
 - **Lint** runs in about 7 s in place of 17 s on Windows, best of 4 runs, so the pre-commit hook waits less.
 - **install.sh** in Git Bash finds its own `include.path` on a second run, and adds no copy.
