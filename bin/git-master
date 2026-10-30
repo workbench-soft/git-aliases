@@ -7,6 +7,12 @@ set -euo pipefail
 remote=$(pick_remote)
 target=$(remote_head_branch "$remote")
 
+# git refuses to check out a branch another worktree holds, so stop before any change.
+holder=$(git for-each-ref --format='%(worktreepath)' "refs/heads/$target")
+if [[ -n $holder && $holder != "$(git rev-parse --show-toplevel)" ]]; then
+	abort "$target is checked out at $holder, run git master there"
+fi
+
 if [[ -n $(git status --porcelain) ]]; then
 	echo 'You have local changes:'
 	git status --short

@@ -139,6 +139,13 @@ git reset -q --hard
 git master >/dev/null 2>&1
 expect_eq 'git master lands on the default branch' main "$(git b)"
 
+git worktree add -q -b master-elsewhere "$tmp/master-elsewhere"
+echo keep >"$tmp/master-elsewhere/keep.txt"
+expect_refusal 'git master names the worktree that holds the default branch' "main is checked out at $tmp/work" git -C "$tmp/master-elsewhere" master
+expect_eq 'git master there keeps the local changes' yes "$(exists "$tmp/master-elsewhere/keep.txt")"
+git worktree remove --force "$tmp/master-elsewhere"
+git branch -q -D master-elsewhere
+
 git co feature-x >/dev/null 2>&1
 expect_eq 'git co switches to a local branch' feature-x "$(git b)"
 

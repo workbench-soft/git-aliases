@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **git master** stops before any change when another worktree holds the default branch, and names that folder.
 - **Docs** `docs/features.md` and `docs/architecture.md` give a high level view with a diagram.
 
 - **CI** runs on pushes to main only. PR runs are off, and the workflow says how to turn them back on.
