@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Lint tools** the README installs shellcheck and shfmt through `mise install`, on Windows and macOS both.
 - **Releases** each push to `main` that passes `lint` gets a GitHub release such as `v2026.10.30.1`. Its notes list the commits since the release before.
 - **Public** the repo is open source. CI runs on GitHub runners, Linux and Windows, in place of the Windows PC. `mise.toml` pins shellcheck and shfmt.
 - **Docs** `docs/user-flows.md` walks through each flow. `docs/architecture.md` says bash and shows the path of one call.
