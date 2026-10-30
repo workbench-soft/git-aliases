@@ -25,15 +25,15 @@ jobs:
   # run the aliases, so both get checked.
   lint:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      # mise.toml pins shellcheck and shfmt, so CI lints with the local versions.
       - name: Install shfmt and shellcheck
-        run: |
-          if command -v apt-get; then sudo apt-get update -q && sudo apt-get install -yq shfmt shellcheck
-          else choco install -y --no-progress shfmt shellcheck; fi
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
       - run: ./lint.sh
       - run: ./test.sh

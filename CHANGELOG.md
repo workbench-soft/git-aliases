@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Public** the repo is open source. CI runs on GitHub runners, Linux and Windows, in place of the Windows PC.
+- **Public** the repo is open source. CI runs on GitHub runners, Linux and Windows, in place of the Windows PC. `mise.toml` pins shellcheck and shfmt.
 - **Docs** `docs/user-flows.md` walks through each flow. `docs/architecture.md` says bash and shows the path of one call.
 - **CI** stops a job after 20 minutes. A normal run takes about 1 minute.
 - **CI** pins `actions/checkout` to the v5.1.0 commit, so a moved tag can't run new code on the Windows PC runner.
