@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Lint** runs in about 7 s in place of 17 s on Windows, best of 4 runs, so the pre-commit hook waits less.
 - **install.sh** in Git Bash finds its own `include.path` on a second run, and adds no copy.
 - **install.sh** in Git Bash finds the aliases `~/.gitconfig` sets itself, and offers to remove them.
 - **Questions** with no terminal attached, each question gets a no without the "/dev/tty: No such device or address" error.
