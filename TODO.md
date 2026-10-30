@@ -13,3 +13,7 @@
 - Left: `git c --author "X <x>" msg` puts the author into the message. A fix changes how `git c` reads flags.
 - Left: each alias takes about 0.3 s on Windows, against 0.1 s for plain git. The git alias design starts bash each time.
 - Left: the palette shift above is a product call.
+
+## ci/hosted-runner
+
+- [ ] **Linux tests** `test.sh` exits 1 with no FAIL line on the GitHub Ubuntu runner. CI runs it on Windows only until that is found.
