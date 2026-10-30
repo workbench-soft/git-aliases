@@ -185,8 +185,8 @@ PowerShell installed, it parses the `.ps1` files. To install the tools and fix
 the formatting:
 
 ```sh
-brew install shellcheck shfmt
-shfmt --write --case-indent bin/* ./*.sh hooks/*
+mise install
+mise x -- shfmt --write --case-indent bin/* ./*.sh hooks/*
 ```
 
 `test.sh` builds a repo and a `HOME` in a temp folder. It commits, pushes and
