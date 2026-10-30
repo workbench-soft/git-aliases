@@ -12,9 +12,13 @@ git() {
 		return
 	}
 	shift
-	local reply target
-	reply=$(command git sb "$@") || return
-	[[ $reply == "__cd__ "* ]] || return 0
+	local reply target code=0
+	reply=$(command git sb "$@") || code=$?
+	if [[ $reply != "__cd__ "* ]]; then
+		# git checkout prints lines such as "Your branch is up to date" on stdout.
+		[[ -z $reply ]] || print -r -- "$reply"
+		return $code
+	fi
 	target=${reply#__cd__ }
 	cd "$target" || return
 	if [[ $TERM_PROGRAM == vscode ]] && (($+commands[code])); then

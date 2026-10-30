@@ -14,10 +14,12 @@ function git {
 	}
 
 	$sbArgs = @($args | Select-Object -Skip 1)
-	$reply = & $gitExe sb @sbArgs
-	if ($LASTEXITCODE -ne 0) { return }
-	$cdLine = @($reply) | Where-Object { $_ -like '__cd__ *' } | Select-Object -First 1
-	if (-not $cdLine) { return }
+	$reply = @(& $gitExe sb @sbArgs)
+	$code = $LASTEXITCODE
+	# git checkout prints lines such as "Your branch is up to date" on stdout.
+	$reply | Where-Object { $_ -notlike '__cd__ *' }
+	$cdLine = $reply | Where-Object { $_ -like '__cd__ *' } | Select-Object -First 1
+	if ($code -ne 0 -or -not $cdLine) { return }
 
 	$target = $cdLine.Substring(7)
 	Set-Location -LiteralPath $target
