@@ -423,6 +423,25 @@ expect_eq 'git sb prints the folder of a branch in another worktree' "__cd__ $tm
 expect_in 'git sb marks the branch of this worktree' '(this worktree)' "$(<"$tmp/menu")"
 expect_eq 'git sb leaves colour out of its menu under NO_COLOR' '' "$(grep -F $'\033' "$tmp/menu" || true)"
 
+# --- the installer ----------------------------------------------------------
+
+# Git Bash spells HOME as /c/Users/..., so the scratch HOME does too.
+install_home="$tmp/install-home"
+mkdir -p "$install_home"
+if [[ $on_windows == yes ]]; then
+	install_home=$(cygpath -u "$install_home")
+fi
+printf '[alias]\n\tco = checkout\n' >"$install_home/.gitconfig"
+install_out=$(
+	export HOME=$install_home
+	# shellcheck source=/dev/null  # its repo and index stay inside this subshell
+	. "$repo/install.sh"
+	# shellcheck disable=SC2329  # offer_alias_cleanup calls it
+	ask_yes() { printf 'asked: %s\n' "$*"; }
+	offer_alias_cleanup
+)
+expect_in 'install.sh offers to remove an alias ~/.gitconfig sets itself' 'asked: Remove the [alias] section' "$install_out"
+
 alias_total=$(git config --file "$repo/aliases.gitconfig" --name-only --get-regexp '^alias\.' | grep -c .)
 expect_eq 'git a lists each alias' "$alias_total" "$(git a | grep -c 'bin/git-')"
 

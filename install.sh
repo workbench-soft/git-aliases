@@ -4,7 +4,7 @@
 # ~/.zshrc only grows.
 set -euo pipefail
 
-repo=$(cd "$(dirname "$0")" && pwd)
+repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=bin/_shared.sh
 . "$repo/bin/_shared.sh"
 index="$repo/aliases.gitconfig"
@@ -45,12 +45,12 @@ warn_old_git() {
 }
 
 # An alias set in ~/.gitconfig itself beats the same alias from an include.
+# --file reads that one file and skips its includes.
 offer_alias_cleanup() {
 	local ours theirs clashes alias_name
 	ours=$(git config --file "$index" --name-only --get-regexp '^alias\.' | sed 's/^alias\.//' | LC_ALL=C sort)
-	theirs=$(git config --global --show-origin --name-only --get-regexp '^alias\.' 2>/dev/null |
-		awk -F'\t' -v origin="file:$user_gitconfig" '$1 == origin {sub(/^alias\./, "", $2); print $2}' |
-		LC_ALL=C sort -u || true)
+	theirs=$(git config --file "$user_gitconfig" --name-only --get-regexp '^alias\.' 2>/dev/null |
+		sed 's/^alias\.//' | LC_ALL=C sort -u || true)
 	clashes=$(comm -12 <(printf '%s\n' "$ours") <(printf '%s\n' "$theirs") || true)
 	[[ -n $clashes ]] || return 0
 
@@ -114,4 +114,5 @@ prove_install() {
 	fi
 }
 
-main
+# test.sh sources this file to run one step at a time.
+[[ ${BASH_SOURCE[0]} != "$0" ]] || main
