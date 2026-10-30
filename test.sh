@@ -439,8 +439,12 @@ install_out=$(
 	# shellcheck disable=SC2329  # offer_alias_cleanup calls it
 	ask_yes() { printf 'asked: %s\n' "$*"; }
 	offer_alias_cleanup
+	link_aliases >/dev/null
+	link_aliases >/dev/null
+	printf 'include.path count: %s\n' "$(git config --global --get-all include.path | grep -c .)"
 )
 expect_in 'install.sh offers to remove an alias ~/.gitconfig sets itself' 'asked: Remove the [alias] section' "$install_out"
+expect_in 'a second install.sh run keeps one include.path' 'include.path count: 1' "$install_out"
 
 alias_total=$(git config --file "$repo/aliases.gitconfig" --name-only --get-regexp '^alias\.' | grep -c .)
 expect_eq 'git a lists each alias' "$alias_total" "$(git a | grep -c 'bin/git-')"

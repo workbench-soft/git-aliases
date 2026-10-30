@@ -4,7 +4,9 @@
 # ~/.zshrc only grows.
 set -euo pipefail
 
-repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# Git Bash turns /c/... into C:/... on the way to git, so the path takes the
+# form git stores and a rerun finds it. Other shells have no pwd -W.
+repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && { pwd -W 2>/dev/null || pwd; })
 # shellcheck source=bin/_shared.sh
 . "$repo/bin/_shared.sh"
 index="$repo/aliases.gitconfig"

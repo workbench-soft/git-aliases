@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **install.sh** in Git Bash finds its own `include.path` on a second run, and adds no copy.
 - **install.sh** in Git Bash finds the aliases `~/.gitconfig` sets itself, and offers to remove them.
 - **Questions** with no terminal attached, each question gets a no without the "/dev/tty: No such device or address" error.
 - **git sb** in zsh and PowerShell prints what `git checkout` says, such as "Your branch is up to date".
