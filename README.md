@@ -100,24 +100,24 @@ usage: git cp [-f] [-p] [-s] [--] <message>
 `-h` prints the same text. Git adds a line about the alias above it. That line
 comes from git, and the script doesn't print it.
 
-| Alias | What it does |
-| --- | --- |
-| `a` | List each alias with its description |
-| `b` | Print the current branch name |
-| `c` | Commit, with the arguments joined into the message. Flags go to `git commit`, and `--` makes the rest message |
-| `cb` | Create a branch, the name turned into lowercase-with-hyphens |
-| `co` | Check out a branch, and fetch it from origin when it isn't local yet |
-| `cp` | Stage all, commit, push. `-f` force-with-lease, `-p` skip hooks, `-s` skip staging, `--` makes the rest message |
-| `db` | Pick branches and worktrees in fzf (TAB for several), then delete them |
-| `dbm` | Prune the remotes, then offer to delete branches and worktrees whose upstream is gone |
-| `hr` | Hard reset to HEAD and delete untracked files |
-| `last` | Show the last commit with its diff |
-| `m`, `main`, `master` | Drop local changes and unpushed commits (after a question), fetch, hard reset to the default branch |
-| `p` | Pull with rebase from the remote branch of the same name |
-| `r` | Fetch and rebase onto the default branch. `-c` uses the upstream, or pass a branch |
-| `sb` | Pick a local branch in fzf and switch to it, worktrees included |
-| `sr1` | Undo the last commit, and keep its changes staged |
-| `srmb` | Soft reset to the merge base with the default branch, and keep the changes staged |
+| Alias                 | What it does                                                                                                    |
+| --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `a`                   | List each alias with its description                                                                            |
+| `b`                   | Print the current branch name                                                                                   |
+| `c`                   | Commit, with the arguments joined into the message. Flags go to `git commit`, and `--` makes the rest message   |
+| `cb`                  | Create a branch, the name turned into lowercase-with-hyphens                                                    |
+| `co`                  | Check out a branch, and fetch it from origin when it isn't local yet                                            |
+| `cp`                  | Stage all, commit, push. `-f` force-with-lease, `-p` skip hooks, `-s` skip staging, `--` makes the rest message |
+| `db`                  | Pick branches and worktrees in fzf (TAB for several), then delete them                                          |
+| `dbm`                 | Prune the remotes, then offer to delete branches and worktrees whose upstream is gone                           |
+| `hr`                  | Hard reset to HEAD and delete untracked files                                                                   |
+| `last`                | Show the last commit with its diff                                                                              |
+| `m`, `main`, `master` | Drop local changes and unpushed commits (after a question), fetch, hard reset to the default branch             |
+| `p`                   | Pull with rebase from the remote branch of the same name                                                        |
+| `r`                   | Fetch and rebase onto the default branch. `-c` uses the upstream, or pass a branch                              |
+| `sb`                  | Pick a local branch in fzf and switch to it, worktrees included                                                 |
+| `sr1`                 | Undo the last commit, and keep its changes staged                                                               |
+| `srmb`                | Soft reset to the merge base with the default branch, and keep the changes staged                               |
 
 ### Deleting branches and worktrees
 

@@ -14,15 +14,15 @@ flowchart LR
   install --> shell["shell/git-sb.zsh, git-sb.ps1"]
 ```
 
-| Part | Technology | Job |
-| --- | --- | --- |
-| Aliases | bash, `bin/git-*` | The commands |
-| Helpers | `bin/_shared.sh`, `bin/_prune.sh` | Colours, questions, remote lookup, branch and worktree removal |
-| Map | `aliases.gitconfig` | Alias name to script |
-| Installers | `install.sh`, `install.ps1` | Wire up `~/.gitconfig`, the shell function and the hook |
-| Shell functions | `shell/git-sb.zsh`, `shell/git-sb.ps1` | Turn the `__cd__ <path>` line of `git sb` into a `cd` |
-| Checks | `lint.sh`, `test.sh`, `hooks/pre-commit`, `.github/workflows/lint.yml` | Keep the scripts working |
-| Release | `.github/workflows/release.yml`, `.github/scripts/` | Tags each push to main that passes lint and publishes its notes |
+| Part            | Technology                                                             | Job                                                             |
+| --------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Aliases         | bash, `bin/git-*`                                                      | The commands                                                    |
+| Helpers         | `bin/_shared.sh`, `bin/_prune.sh`                                      | Colours, questions, remote lookup, branch and worktree removal  |
+| Map             | `aliases.gitconfig`                                                    | Alias name to script                                            |
+| Installers      | `install.sh`, `install.ps1`                                            | Wire up `~/.gitconfig`, the shell function and the hook         |
+| Shell functions | `shell/git-sb.zsh`, `shell/git-sb.ps1`                                 | Turn the `__cd__ <path>` line of `git sb` into a `cd`           |
+| Checks          | `lint.sh`, `test.sh`, `hooks/pre-commit`, `.github/workflows/lint.yml` | Keep the scripts working                                        |
+| Release         | `.github/workflows/release.yml`, `.github/scripts/`                    | Tags each push to main that passes lint and publishes its notes |
 
 ## The path of one call
 
