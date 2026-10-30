@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Questions** with no terminal attached, each question gets a no without the "/dev/tty: No such device or address" error.
 - **git sb** in zsh and PowerShell prints what `git checkout` says, such as "Your branch is up to date".
 - **git sb** leaves colour out of its menu when `NO_COLOR` is set.
 - **git cb** turns a name part ending in `.lock`, which git refuses, into `-lock`: `git cb "Update yarn.lock"` makes `update-yarn-lock`.

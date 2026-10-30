@@ -5,6 +5,8 @@
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=bin/_shared.sh
+. "$repo/bin/_shared.sh"
 index="$repo/aliases.gitconfig"
 user_gitconfig="$HOME/.gitconfig"
 zshrc="$HOME/.zshrc"
@@ -22,18 +24,6 @@ main() {
 	echo
 	git -C "$repo" config core.hooksPath hooks
 	prove_install
-}
-
-# Without a terminal (a pipe into sh, CI) every question gets a no.
-ask_yes() {
-	local reply
-	[[ -e /dev/tty ]] || return 1
-	printf '%s [y/N] ' "$*" >&2
-	read -r reply </dev/tty || return 1
-	case $reply in
-		y | Y | yes | YES) return 0 ;;
-		*) return 1 ;;
-	esac
 }
 
 keep_copy() {
