@@ -112,7 +112,7 @@ comes from git, and the script doesn't print it.
 | `dbm` | Prune the remotes, then offer to delete branches and worktrees whose upstream is gone |
 | `hr` | Hard reset to HEAD and delete untracked files |
 | `last` | Show the last commit with its diff |
-| `m`, `main`, `master` | Drop local changes (after a question), fetch, hard reset to the default branch |
+| `m`, `main`, `master` | Drop local changes and unpushed commits (after a question), fetch, hard reset to the default branch |
 | `p` | Pull with rebase from the remote branch of the same name |
 | `r` | Fetch and rebase onto the default branch. `-c` uses the upstream, or pass a branch |
 | `sb` | Pick a local branch in fzf and switch to it, worktrees included |

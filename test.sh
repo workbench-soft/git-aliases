@@ -146,6 +146,17 @@ expect_eq 'git master there keeps the local changes' yes "$(exists "$tmp/master-
 git worktree remove --force "$tmp/master-elsewhere"
 git branch -q -D master-elsewhere
 
+# A copy of the alias, with a stub in place of the terminal question.
+mkdir -p "$tmp/master-alias/bin"
+cp "$repo/bin/git-master" "$repo/bin/_shared.sh" "$tmp/master-alias/bin/"
+# shellcheck disable=SC2016
+echo 'ask_yes() { [[ ${answer_yes:-no} == yes ]]; }' >>"$tmp/master-alias/bin/_shared.sh"
+git commit -q --allow-empty -m 'local only'
+expect_refusal 'git master lists the commits it would drop' 'local only' git -c gitaliases.dir="$tmp/master-alias" master
+expect_eq 'a no keeps the local commit' 'local only' "$(git log -1 --format=%s)"
+answer_yes=yes git -c gitaliases.dir="$tmp/master-alias" master >/dev/null 2>&1
+expect_eq 'a yes resets to the remote' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+
 git co feature-x >/dev/null 2>&1
 expect_eq 'git co switches to a local branch' feature-x "$(git b)"
 

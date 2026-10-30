@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drop local changes (asks first), fetch, hard reset to the default branch.
+# Drop local changes and commits (asks first), fetch, hard reset to the default branch.
 set -euo pipefail
 # shellcheck source=bin/_shared.sh
 . "$(dirname "$0")/_shared.sh"
@@ -13,6 +13,18 @@ if [[ -n $holder && $holder != "$(git rev-parse --show-toplevel)" ]]; then
 	abort "$target is checked out at $holder, run git master there"
 fi
 
+# The fetch comes first, so both questions come before anything is dropped.
+trace_run git fetch "$remote" "$target"
+
+if git show-ref --verify --quiet "refs/heads/$target"; then
+	unpushed=$(git log --oneline "$remote/$target..refs/heads/$target")
+	if [[ -n $unpushed ]]; then
+		echo "$target has commits that $remote/$target lacks:"
+		printf '%s\n' "$unpushed"
+		ask_yes 'Drop these commits?' || abort 'aborted'
+	fi
+fi
+
 if [[ -n $(git status --porcelain) ]]; then
 	echo 'You have local changes:'
 	git status --short
@@ -20,8 +32,6 @@ if [[ -n $(git status --porcelain) ]]; then
 	trace_run git reset --hard HEAD
 	trace_run git clean -fd
 fi
-
-trace_run git fetch "$remote" "$target"
 
 if git show-ref --verify --quiet "refs/heads/$target"; then
 	trace_run git checkout "$target"
