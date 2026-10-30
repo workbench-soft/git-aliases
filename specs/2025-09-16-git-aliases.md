@@ -41,3 +41,16 @@ Everyday git commands needed too much typing. Short aliases replace them, and a 
 ## Docs to update
 
 - `README.md`
+
+## 2025-10-30 git master asks before it drops commits
+
+- **Why** `git master` reset the default branch to the remote and lost the
+  local commits the remote lacked, with no question. In a linked worktree it
+  dropped the local changes first, then failed: another worktree held the
+  default branch.
+- **Changes** `bin/git-master` stops before any change when another worktree
+  holds the default branch, and names that folder. It lists the commits the
+  remote lacks and asks before the reset. `test.sh` checks both.
+- **Steps** 1. this entry. 2. stop early when another worktree holds the
+  branch. 3. ask before dropping commits.
+- **Docs** the `master` row in `README.md`, `CHANGELOG.md`.

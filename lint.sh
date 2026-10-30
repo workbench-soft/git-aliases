@@ -36,12 +36,15 @@ problem() {
 	problems=$((problems + 1))
 }
 
+# Each process start costs tens of milliseconds on Windows, and this runs
+# before each commit, so the checks read files with bash and call git once.
+tracked=$'\n'$(git ls-files)$'\n'
+tracked_executables=$'\n'$(git ls-files --stage | awk -F'\t' '$1 ~ /^100755 / {print $2}')$'\n'
+
 # NTFS has no exec bit, so a tracked file goes by the mode git stored for it.
 is_executable() {
-	local mode
-	mode=$(git ls-files --stage -- "$1" | cut -c1-6)
-	if [[ -n $mode ]]; then
-		[[ $mode == 100755 ]]
+	if [[ $tracked == *$'\n'"$1"$'\n'* ]]; then
+		[[ $tracked_executables == *$'\n'"$1"$'\n'* ]]
 	else
 		[[ -x $1 ]]
 	fi
@@ -91,12 +94,17 @@ check_index() {
 }
 
 check_scripts() {
-	local script helper entry
+	local script helper entry first second text
 	for script in bin/git-*; do
 		is_executable "$script" || problem "$script: not executable, $chmod_hint"
-		[[ $(head -n 1 "$script") == '#!/usr/bin/env bash' ]] || problem "$script: first line must be #!/usr/bin/env bash"
-		[[ $(sed -n '2p' "$script") == '# '?* ]] || problem "$script: line 2 must be a '# ' description comment"
-		grep -qx 'set -euo pipefail' "$script" || problem "$script: missing 'set -euo pipefail'"
+		{
+			IFS= read -r first || true
+			IFS= read -r second || true
+		} <"$script"
+		IFS= read -r -d '' text <"$script" || true
+		[[ $first == '#!/usr/bin/env bash' ]] || problem "$script: first line must be #!/usr/bin/env bash"
+		[[ $second == '# '?* ]] || problem "$script: line 2 must be a '# ' description comment"
+		[[ $'\n'$text == *$'\nset -euo pipefail\n'* ]] || problem "$script: missing 'set -euo pipefail'"
 		is_aliased "${script#bin/}" || problem "$script: no alias in $index runs it"
 	done
 
@@ -118,9 +126,10 @@ is_aliased() {
 }
 
 check_readme() {
-	local alias_name
+	local alias_name text
+	IFS= read -r -d '' text <"$readme" || true
 	for alias_name in ${alias_names[@]+"${alias_names[@]}"}; do
-		grep -qF "\`$alias_name\`" "$readme" || problem "$readme: alias '$alias_name' is not documented"
+		[[ $text == *"\`$alias_name\`"* ]] || problem "$readme: alias '$alias_name' is not documented"
 	done
 }
 
@@ -143,7 +152,7 @@ run_shfmt() {
 
 # PowerShell 7 comes first, then Windows PowerShell.
 parse_powershell() {
-	local shell_exe='' candidate file
+	local shell_exe='' candidate files
 	for candidate in pwsh powershell; do
 		command -v "$candidate" >/dev/null 2>&1 || continue
 		shell_exe=$candidate
@@ -153,14 +162,20 @@ parse_powershell() {
 		echo 'skipped the PowerShell parse (not installed: brew install powershell)'
 		return 0
 	fi
-	for file in ./*.ps1 shell/*.ps1; do
-		# shellcheck disable=SC2016  # PowerShell expands these, bash must not
-		ps1_file=$file "$shell_exe" -NoProfile -Command '$errors = $null
-			$path = (Resolve-Path -LiteralPath $env:ps1_file).Path
+	# One PowerShell start for all the files, since each start takes a second or so.
+	files=$(printf '%s\n' ./*.ps1 shell/*.ps1)
+	# shellcheck disable=SC2016  # PowerShell expands these, bash must not
+	ps1_files=$files "$shell_exe" -NoProfile -Command '$failed = 0
+		foreach ($file in $env:ps1_files -split "`n") {
+			$errors = $null
+			$path = (Resolve-Path -LiteralPath $file).Path
 			[void][System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$null, [ref]$errors)
-			$errors | ForEach-Object { "$($_.Extent.StartLineNumber): $($_.Message)" }
-			exit $errors.Count' || problem "$file: PowerShell can't parse it"
-	done
+			if ($errors.Count) {
+				$failed++
+				$errors | ForEach-Object { "${file}:$($_.Extent.StartLineNumber): $($_.Message)" }
+			}
+		}
+		exit $failed' || problem "PowerShell can't parse the files above"
 }
 
 main

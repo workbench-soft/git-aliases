@@ -50,10 +50,14 @@ show_usage() {
 }
 
 # Reads the answer from the terminal, so a pipe on stdin can't answer for the person.
+# Without a terminal (a pipe into sh, CI) each question gets a no.
 ask_yes() {
 	local reply
 	printf '%s [y/N] ' "$*" >&2
-	read -r reply </dev/tty || return 1
+	if ! { read -r reply </dev/tty; } 2>/dev/null; then
+		printf '\n' >&2
+		return 1
+	fi
 	case $reply in
 		y | Y | yes | YES) return 0 ;;
 		*) return 1 ;;

@@ -89,6 +89,9 @@ expect_eq 'git cb turns the name into a slug' feature-x "$(git b)"
 git checkout -q main
 git cb '--Odd..Name/.x.' >/dev/null 2>&1
 expect_eq 'git cb drops the dots git refuses' odd.name/x "$(git b)"
+git checkout -q main
+git cb 'Update yarn.lock.' >/dev/null 2>&1
+expect_eq 'git cb renames a .lock ending git refuses' update-yarn-lock "$(git b)"
 git checkout -q feature-x
 
 expect_refusal 'git c refuses an empty message' 'usage: git c' git c
@@ -138,6 +141,24 @@ expect_eq 'git srmb moves HEAD to the merge base' "$(git rev-parse origin/main)"
 git reset -q --hard
 git master >/dev/null 2>&1
 expect_eq 'git master lands on the default branch' main "$(git b)"
+
+git worktree add -q -b master-elsewhere "$tmp/master-elsewhere"
+echo keep >"$tmp/master-elsewhere/keep.txt"
+expect_refusal 'git master names the worktree that holds the default branch' "main is checked out at $tmp/work" git -C "$tmp/master-elsewhere" master
+expect_eq 'git master there keeps the local changes' yes "$(exists "$tmp/master-elsewhere/keep.txt")"
+git worktree remove --force "$tmp/master-elsewhere"
+git branch -q -D master-elsewhere
+
+# A copy of the alias, with a stub in place of the terminal question.
+mkdir -p "$tmp/master-alias/bin"
+cp "$repo/bin/git-master" "$repo/bin/_shared.sh" "$tmp/master-alias/bin/"
+# shellcheck disable=SC2016
+echo 'ask_yes() { [[ ${answer_yes:-no} == yes ]]; }' >>"$tmp/master-alias/bin/_shared.sh"
+git commit -q --allow-empty -m 'local only'
+expect_refusal 'git master lists the commits it would drop' 'local only' git -c gitaliases.dir="$tmp/master-alias" master
+expect_eq 'a no keeps the local commit' 'local only' "$(git log -1 --format=%s)"
+answer_yes=yes git -c gitaliases.dir="$tmp/master-alias" master >/dev/null 2>&1
+expect_eq 'a yes resets to the remote' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
 
 git co feature-x >/dev/null 2>&1
 expect_eq 'git co switches to a local branch' feature-x "$(git b)"
@@ -385,6 +406,45 @@ expect_eq 'git dbm leaves a worktree whose upstream exists' yes "$(exists "$tmp/
 expect_eq 'removing worktrees keeps the shared stash' "$stash_before" "$(git rev-parse refs/stash)"
 
 git branch --set-upstream-to=origin/main main >/dev/null
+
+# fzf saves the menu it got, then picks the line that starts with $pick.
+sb_out=$(
+	# shellcheck disable=SC2329  # git sb calls it through export -f
+	fzf() {
+		local menu
+		menu=$(cat)
+		printf '%s\n' "$menu" >"$scratch/menu"
+		printf '%s\n' "$menu" | grep -m 1 "^$pick "
+	}
+	export -f fzf
+	pick=kept-worktree git sb 2>/dev/null
+)
+expect_eq 'git sb prints the folder of a branch in another worktree' "__cd__ $tmp/kept" "$sb_out"
+expect_in 'git sb marks the branch of this worktree' '(this worktree)' "$(<"$tmp/menu")"
+expect_eq 'git sb leaves colour out of its menu under NO_COLOR' '' "$(grep -F $'\033' "$tmp/menu" || true)"
+
+# --- the installer ----------------------------------------------------------
+
+# Git Bash spells HOME as /c/Users/..., so the scratch HOME does too.
+install_home="$tmp/install-home"
+mkdir -p "$install_home"
+if [[ $on_windows == yes ]]; then
+	install_home=$(cygpath -u "$install_home")
+fi
+printf '[alias]\n\tco = checkout\n' >"$install_home/.gitconfig"
+install_out=$(
+	export HOME=$install_home
+	# shellcheck source=/dev/null  # its repo and index stay inside this subshell
+	. "$repo/install.sh"
+	# shellcheck disable=SC2329  # offer_alias_cleanup calls it
+	ask_yes() { printf 'asked: %s\n' "$*"; }
+	offer_alias_cleanup
+	link_aliases >/dev/null
+	link_aliases >/dev/null
+	printf 'include.path count: %s\n' "$(git config --global --get-all include.path | grep -c .)"
+)
+expect_in 'install.sh offers to remove an alias ~/.gitconfig sets itself' 'asked: Remove the [alias] section' "$install_out"
+expect_in 'a second install.sh run keeps one include.path' 'include.path count: 1' "$install_out"
 
 alias_total=$(git config --file "$repo/aliases.gitconfig" --name-only --get-regexp '^alias\.' | grep -c .)
 expect_eq 'git a lists each alias' "$alias_total" "$(git a | grep -c 'bin/git-')"

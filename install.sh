@@ -4,7 +4,11 @@
 # ~/.zshrc only grows.
 set -euo pipefail
 
-repo=$(cd "$(dirname "$0")" && pwd)
+# Git Bash turns /c/... into C:/... on the way to git, so the path takes the
+# form git stores and a rerun finds it. Other shells have no pwd -W.
+repo=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && { pwd -W 2>/dev/null || pwd; })
+# shellcheck source=bin/_shared.sh
+. "$repo/bin/_shared.sh"
 index="$repo/aliases.gitconfig"
 user_gitconfig="$HOME/.gitconfig"
 zshrc="$HOME/.zshrc"
@@ -22,18 +26,6 @@ main() {
 	echo
 	git -C "$repo" config core.hooksPath hooks
 	prove_install
-}
-
-# Without a terminal (a pipe into sh, CI) every question gets a no.
-ask_yes() {
-	local reply
-	[[ -e /dev/tty ]] || return 1
-	printf '%s [y/N] ' "$*" >&2
-	read -r reply </dev/tty || return 1
-	case $reply in
-		y | Y | yes | YES) return 0 ;;
-		*) return 1 ;;
-	esac
 }
 
 keep_copy() {
@@ -55,12 +47,12 @@ warn_old_git() {
 }
 
 # An alias set in ~/.gitconfig itself beats the same alias from an include.
+# --file reads that one file and skips its includes.
 offer_alias_cleanup() {
 	local ours theirs clashes alias_name
 	ours=$(git config --file "$index" --name-only --get-regexp '^alias\.' | sed 's/^alias\.//' | LC_ALL=C sort)
-	theirs=$(git config --global --show-origin --name-only --get-regexp '^alias\.' 2>/dev/null |
-		awk -F'\t' -v origin="file:$user_gitconfig" '$1 == origin {sub(/^alias\./, "", $2); print $2}' |
-		LC_ALL=C sort -u || true)
+	theirs=$(git config --file "$user_gitconfig" --name-only --get-regexp '^alias\.' 2>/dev/null |
+		sed 's/^alias\.//' | LC_ALL=C sort -u || true)
 	clashes=$(comm -12 <(printf '%s\n' "$ours") <(printf '%s\n' "$theirs") || true)
 	[[ -n $clashes ]] || return 0
 
@@ -124,4 +116,6 @@ prove_install() {
 	fi
 }
 
-main
+# test.sh sources this file to run one step at a time. Read from stdin, as in
+# bash <install.sh, it has no BASH_SOURCE and runs main.
+[[ ${BASH_SOURCE[0]:-$0} != "$0" ]] || main

@@ -30,13 +30,13 @@ picker_lines() {
 	{
 		held_branches
 		git for-each-ref --sort=-committerdate --format='B%09%(refname:short)' refs/heads/
-	} | awk -F'\t' -v here="$here" '
+	} | awk -F'\t' -v here="$here" -v faint="$CLR_FAINT" -v off="$CLR_OFF" '
 		$1 == "W" { folder[$2] = $3; next }
 		{
 			where = folder[$2]
 			if (where == "") print $2
-			else if (where == here) printf "%-50s \033[38;5;240m(this worktree)\033[0m\n", $2
-			else printf "%-50s \033[38;5;240m%s\033[0m\n", $2, where
+			else if (where == here) printf "%-50s %s(this worktree)%s\n", $2, faint, off
+			else printf "%-50s %s%s%s\n", $2, faint, where, off
 		}'
 }
 
