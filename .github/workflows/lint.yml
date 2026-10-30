@@ -3,9 +3,8 @@ name: lint
 on:
   push:
     branches: [main]
-  # PR runs are off: agents run the tests and linter locally before they merge.
-  # To run this on PRs again, uncomment the pull_request lines below.
-  # pull_request:
+  # The repo is public, so PRs from outside get checked too.
+  pull_request:
 
 # A new push to the same branch or PR stops the older run.
 concurrency:
