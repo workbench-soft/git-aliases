@@ -32,10 +32,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-      # mise.toml pins shellcheck and shfmt, so CI lints with the local versions.
-      - name: Install shfmt and shellcheck
+      # mise.toml pins shellcheck, shfmt and oxfmt, so CI lints with the local versions.
+      - name: Install shfmt, shellcheck and oxfmt
         uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
       - run: ./lint.sh
+      - run: oxfmt --check
       # test.sh expects Git for Windows paths. On Linux it stops early, see TODO.md.
       - run: ./test.sh
         if: runner.os == 'Windows'
