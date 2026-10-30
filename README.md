@@ -194,7 +194,7 @@ resets for real there, and your own files stay untouched. On Windows it skips
 the folder name with a tab and a newline, since NTFS rejects it.
 
 `install.sh` sets `core.hooksPath` to [hooks/](hooks), so the lint runs before
-each commit. GitHub Actions runs both checks on push.
+each commit. GitHub Actions runs both checks on each push to main.
 
 ## Uninstall
 
