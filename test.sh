@@ -407,6 +407,22 @@ expect_eq 'removing worktrees keeps the shared stash' "$stash_before" "$(git rev
 
 git branch --set-upstream-to=origin/main main >/dev/null
 
+# fzf saves the menu it got, then picks the line that starts with $pick.
+sb_out=$(
+	# shellcheck disable=SC2329  # git sb calls it through export -f
+	fzf() {
+		local menu
+		menu=$(cat)
+		printf '%s\n' "$menu" >"$scratch/menu"
+		printf '%s\n' "$menu" | grep -m 1 "^$pick "
+	}
+	export -f fzf
+	pick=kept-worktree git sb 2>/dev/null
+)
+expect_eq 'git sb prints the folder of a branch in another worktree' "__cd__ $tmp/kept" "$sb_out"
+expect_in 'git sb marks the branch of this worktree' '(this worktree)' "$(<"$tmp/menu")"
+expect_eq 'git sb leaves colour out of its menu under NO_COLOR' '' "$(grep -F $'\033' "$tmp/menu" || true)"
+
 alias_total=$(git config --file "$repo/aliases.gitconfig" --name-only --get-regexp '^alias\.' | grep -c .)
 expect_eq 'git a lists each alias' "$alias_total" "$(git a | grep -c 'bin/git-')"
 
