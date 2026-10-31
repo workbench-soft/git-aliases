@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Architecture decisions** `docs/architecture.md` gets a Decisions section. Each big choice names its reason, its cost and the rivals it beat.
+
 - **Format** oxfmt formats the Markdown, and CI checks it next to `lint.sh`.
 
 - **Lint tools** the README installs shellcheck and shfmt through `mise install`, on Windows and macOS both.
