@@ -4,6 +4,8 @@
 
 - **Markdown** markdownlint-cli2 lints the docs in `mise run lint`.
 
+- **CI** the Windows lint job uses a fresh mise cache. The old one held an oxfmt install that failed with a missing tinypool package.
+- Specs: one file per feature under `specs/`, with each dated spec moved in as an entry under `## Changes`.
 - **Agent docs** `AGENTS.md` states each rule with MUST, SHOULD or MAY.
 - **Architecture decisions** `docs/architecture.md` gets a Decisions section. Each big choice names its reason, its cost and the rivals it beat.
 
