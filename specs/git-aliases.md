@@ -1,18 +1,40 @@
 # Short git aliases, an installer and tests
 
-Finished on 2025-09-16, before the history reset to one commit. The local backup mirror of `git-aliases` keeps the old commits under `refs/backup/main`.
-
-## Why
+## What it does for the person
 
 Everyday git commands needed too much typing. Short aliases replace them, and a single command sets them up on a new machine.
 
-## User flows it touches
+## User flows
 
 - **Install** a single command asks first, copies each file it edits, then sets up the aliases.
 - **List** `git a` prints each alias.
 - **Wrong call** an alias run without its arguments prints what it needs.
 
+## How it works: modules, files, data
+
+Each entry below names the files it changed.
+
+## Limits
+
+None written down yet.
+
 ## Changes
+
+### 2025-09-16 Short git aliases, an installer and tests
+
+Finished on 2025-09-16, before the history reset to one commit. The local backup mirror of `git-aliases` keeps the old commits under `refs/backup/main`.
+
+#### Why
+
+Everyday git commands needed too much typing. Short aliases replace them, and a single command sets them up on a new machine.
+
+#### User flows it touches
+
+- **Install** a single command asks first, copies each file it edits, then sets up the aliases.
+- **List** `git a` prints each alias.
+- **Wrong call** an alias run without its arguments prints what it needs.
+
+#### Changes
 
 - **`bin/_lib.sh`** added. Later split into `bin/_shared.sh` and `bin/_prune.sh`.
 - **`bin/git-cp`** added.
@@ -26,7 +48,7 @@ Everyday git commands needed too much typing. Short aliases replace them, and a 
 - **`aliases.gitconfig`** added.
 - **Other files** 17 more.
 
-## Steps, in commit order
+#### Steps, in commit order
 
 1. Add git aliases and README (af8ba5b, 2025-09-16)
 2. Move aliases into shell scripts, add lint and installer (44fc648, 2025-09-16)
@@ -38,11 +60,11 @@ Everyday git commands needed too much typing. Short aliases replace them, and a 
 8. Let a commit message start with a dash, add editorconfig (390b9db, 2025-09-16)
 9. Show the arguments when an alias is called without them (fb242a9, 2025-09-16)
 
-## Docs to update
+#### Docs to update
 
 - `README.md`
 
-## 2025-10-30 git master asks before it drops commits
+#### 2025-10-30 git master asks before it drops commits
 
 - **Why** `git master` reset the default branch to the remote and lost the
   local commits the remote lacked, with no question. In a linked worktree it

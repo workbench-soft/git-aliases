@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Specs: one file per feature under `specs/`, with each dated spec moved in as an entry under `## Changes`.
 - **Agent docs** `AGENTS.md` states each rule with MUST, SHOULD or MAY.
 - **Architecture decisions** `docs/architecture.md` gets a Decisions section. Each big choice names its reason, its cost and the rivals it beat.
 
