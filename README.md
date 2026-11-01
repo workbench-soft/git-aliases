@@ -87,7 +87,7 @@ PATH: in the VS Code palette, run "Shell Command: Install 'code'". With
 `git a` prints this list, taken from the comments in the scripts. An alias that
 needs arguments prints them when you call it with none:
 
-```
+```console
 $ git cp
 usage: git cp [-f] [-p] [-s] [--] <message>
 
@@ -150,7 +150,7 @@ default branch comes from `<remote>/HEAD`, then `master`, then `main`. When
 
 ## Adding or changing an alias
 
-1. Write `bin/git-<name>`: `#!/usr/bin/env bash`, then a `# ` comment on what
+1. Write `bin/git-<name>`: `#!/usr/bin/env bash`, then a `#` comment on what
    it does, then `set -euo pipefail`.
 2. Source `bin/_shared.sh` for the helpers: `trace_run` (print a command, then
    run it), `trace`, `ask_yes`, `abort`, `need_command`, `pick_remote`,
