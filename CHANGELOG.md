@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Agent docs** `AGENTS.md` states each rule with MUST, SHOULD or MAY.
 - **Architecture decisions** `docs/architecture.md` gets a Decisions section. Each big choice names its reason, its cost and the rivals it beat.
 
 - **Format** oxfmt formats the Markdown, and CI checks it next to `lint.sh`.
