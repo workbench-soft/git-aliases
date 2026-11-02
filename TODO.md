@@ -8,7 +8,7 @@
 ## app-audit
 
 - [ ] Check the zsh `git sb` function on the Mac: pick a branch of this worktree and see "Your branch is up to date" (PR #9). This PC has no zsh.
-- [ ] Watch the first CI run on main after PR #9 merges: `actions/checkout` is now pinned to commit `fbc6f39`, and PR runs are off.
+- [ ] lint on main fails (run of 2026-11-02 21:10 UTC). PR #9 pinned `actions/checkout` to commit `fbc6f39` and turned PR runs off. Find the cause and fix it.
 - Left: pin shellcheck and shfmt in `mise.toml` and use it in CI. Only a run on main can prove the CI change.
 - Left: `git c --author "X <x>" msg` puts the author into the message. A fix changes how `git c` reads flags.
 - Left: each alias takes about 0.3 s on Windows, against 0.1 s for plain git. The git alias design starts bash each time.
