@@ -116,6 +116,18 @@ git -C "$tmp/no-remote" commit -q --allow-empty -m 'first'
 git -C "$tmp/no-remote" remote add origin "$tmp/origin.git"
 expect_eq 'git srmb stops at the missing origin/HEAD' '' "$(git -C "$tmp/no-remote" srmb 2>&1 | grep -F 'fatal:' || true)"
 
+# A fetch from git 2.48 on sets upstream/HEAD, so the fallback needs it gone.
+git init -q "$tmp/other-remote"
+git -C "$tmp/other-remote" remote add upstream "$tmp/origin.git"
+git -C "$tmp/other-remote" fetch -q upstream
+git -C "$tmp/other-remote" remote set-head upstream -d >/dev/null 2>&1 || true
+# shellcheck source=bin/_shared.sh
+helper_out=$(cd "$tmp/other-remote" && . "$repo/bin/_shared.sh" && pick_remote && remote_head_branch upstream)
+expect_eq 'the single remote counts when none is called origin' upstream "${helper_out%%$'\n'*}"
+expect_eq 'without upstream/HEAD the default branch falls back to main' main "${helper_out#*$'\n'}"
+git -C "$tmp/other-remote" remote add fork "$tmp/origin.git"
+expect_refusal 'two remotes and no origin get an error' 'more than one to choose from' git -C "$tmp/other-remote" srmb
+
 expect_in 'the usage lists each flag' '-f  push with --force-with-lease' "$(git cp -h 2>&1 || true)"
 
 echo two >>file.txt
