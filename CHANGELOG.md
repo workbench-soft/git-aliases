@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Docs** each heading of `docs/features.md` links its spec, and each feature that had no spec got one.
 - **Markdown** markdownlint-cli2 lints the docs in `mise run lint`.
 
 - **CI** the Windows lint job uses a fresh mise cache. The old one held an oxfmt install that failed with a missing tinypool package.
