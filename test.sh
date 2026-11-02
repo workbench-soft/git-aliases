@@ -178,6 +178,21 @@ expect_eq 'git r keeps an up to date branch where it is' "$(git rev-parse origin
 git p >/dev/null 2>&1
 expect_eq 'git p keeps an up to date branch where it is' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
 
+# A remote can name its HEAD branch --upload-pack=<command>, and a clone lands on
+# it. Git runs that command for a remote on disk when the name reaches it as a flag.
+git clone -q "$tmp/origin.git" "$tmp/dash"
+git -C "$tmp/dash" update-ref refs/heads/--upload-pack=pwned HEAD
+git -C "$tmp/dash" symbolic-ref HEAD refs/heads/--upload-pack=pwned
+git -C "$tmp/dash" symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/--upload-pack=pwned
+mkdir -p "$tmp/stub-bin"
+printf '#!/bin/sh\ntouch "%s/pwned.txt"\nexit 1\n' "$tmp" >"$tmp/stub-bin/pwned"
+chmod +x "$tmp/stub-bin/pwned"
+# PATH splits on colons, so it takes /c/... in place of C:/... on Windows.
+stub_path=$(cd "$tmp/stub-bin" && pwd):$PATH
+PATH=$stub_path expect_refusal 'git p refuses a branch name that starts with a dash' 'starts with a dash' git -C "$tmp/dash" p
+PATH=$stub_path expect_refusal 'git master refuses a remote HEAD that starts with a dash' 'starts with a dash' git -C "$tmp/dash" master
+expect_eq 'a branch name that starts with a dash runs no command' no "$(exists "$tmp/pwned.txt")"
+
 expect_in 'git dbm reports an empty list' 'No deletable branches or worktrees with a gone upstream.' "$(git dbm 2>&1)"
 
 # --- deleting branches and worktrees ----------------------------------------

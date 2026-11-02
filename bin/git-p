@@ -6,6 +6,7 @@ set -euo pipefail
 
 current=$(git branch --show-current)
 [[ -n $current ]] || abort 'detached HEAD, nothing to pull'
+need_plain_branch "$current"
 
 # Naming the remote branch outright lets a branch with no upstream pull too.
 trace_run git pull --rebase "$(pick_remote)" "$current"
