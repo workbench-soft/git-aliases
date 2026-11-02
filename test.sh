@@ -92,6 +92,9 @@ expect_eq 'git cb drops the dots git refuses' odd.name/x "$(git b)"
 git checkout -q main
 git cb 'Update yarn.lock.' >/dev/null 2>&1
 expect_eq 'git cb renames a .lock ending git refuses' update-yarn-lock "$(git b)"
+git checkout -q main
+git cb 'docs/./fix' >/dev/null 2>&1
+expect_eq 'git cb drops a dot folder between slashes' docs/fix "$(git b)"
 git checkout -q feature-x
 
 expect_refusal 'git c refuses an empty message' 'usage: git c' git c
@@ -107,6 +110,23 @@ done
 git init -q "$tmp/no-remote"
 expect_refusal 'an alias in a repo with no remote says so' 'no remote set up' git -C "$tmp/no-remote" master
 expect_refusal 'git r -h works in a repo with no remote' 'usage: git r' git -C "$tmp/no-remote" r -h
+expect_eq 'git p stops at the missing remote' 'error: no remote set up, add one with: git remote add origin <url>' "$(git -C "$tmp/no-remote" p 2>&1 || true)"
+expect_eq 'git cp stops at the missing remote' '' "$(git -C "$tmp/no-remote" cp -s msg 2>&1 | grep -F '+ git push' || true)"
+git -C "$tmp/no-remote" commit -q --allow-empty -m 'first'
+git -C "$tmp/no-remote" remote add origin "$tmp/origin.git"
+expect_eq 'git srmb stops at the missing origin/HEAD' '' "$(git -C "$tmp/no-remote" srmb 2>&1 | grep -F 'fatal:' || true)"
+
+# A fetch from git 2.48 on sets upstream/HEAD, so the fallback needs it gone.
+git init -q "$tmp/other-remote"
+git -C "$tmp/other-remote" remote add upstream "$tmp/origin.git"
+git -C "$tmp/other-remote" fetch -q upstream
+git -C "$tmp/other-remote" remote set-head upstream -d >/dev/null 2>&1 || true
+# shellcheck source=bin/_shared.sh
+helper_out=$(cd "$tmp/other-remote" && . "$repo/bin/_shared.sh" && pick_remote && remote_head_branch upstream)
+expect_eq 'the single remote counts when none is called origin' upstream "${helper_out%%$'\n'*}"
+expect_eq 'without upstream/HEAD the default branch falls back to main' main "${helper_out#*$'\n'}"
+git -C "$tmp/other-remote" remote add fork "$tmp/origin.git"
+expect_refusal 'two remotes and no origin get an error' 'more than one to choose from' git -C "$tmp/other-remote" srmb
 
 expect_in 'the usage lists each flag' '-f  push with --force-with-lease' "$(git cp -h 2>&1 || true)"
 
@@ -119,6 +139,10 @@ echo three >>file.txt
 git add -A
 git c -- -fixed with a dash >/dev/null 2>&1
 expect_eq 'git c keeps a leading dash after --' '-fixed with a dash' "$(git log -1 --format=%s)"
+git reset -q --soft HEAD~1
+
+git c '--author=Other Person <other@example.com>' by someone else >/dev/null 2>&1
+expect_eq 'git c hands a flag to git commit' 'Other Person|by someone else' "$(git log -1 --format='%an|%s')"
 git reset -q --soft HEAD~1
 
 expect_in 'git last prints the last commit' 'fixed the file' "$(git last)"
@@ -159,6 +183,11 @@ expect_refusal 'git master lists the commits it would drop' 'local only' git -c 
 expect_eq 'a no keeps the local commit' 'local only' "$(git log -1 --format=%s)"
 answer_yes=yes git -c gitaliases.dir="$tmp/master-alias" master >/dev/null 2>&1
 expect_eq 'a yes resets to the remote' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+git checkout -q --detach
+git commit -q --allow-empty -m 'detached only'
+expect_refusal 'git master lists the detached commits it would drop' 'detached only' git -c gitaliases.dir="$tmp/master-alias" master
+expect_eq 'a no keeps the detached commit' 'detached only' "$(git log -1 --format=%s)"
+git checkout -q main 2>/dev/null
 
 git co feature-x >/dev/null 2>&1
 expect_eq 'git co switches to a local branch' feature-x "$(git b)"
@@ -171,12 +200,41 @@ git -C "$tmp/elsewhere" push -q -u origin remote-only
 git co remote-only >/dev/null 2>&1
 expect_eq 'git co fetches a branch only the remote has' remote-only "$(git b)"
 
-git checkout -q main
-git r >/dev/null 2>&1
-expect_eq 'git r keeps an up to date branch where it is' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+# Pushes a commit to origin/main from the other clone, so an alias here has
+# something to fetch.
+push_upstream_commit() {
+	git -C "$tmp/elsewhere" checkout -q main
+	echo "$1" >>"$tmp/elsewhere/file.txt"
+	git -C "$tmp/elsewhere" commit -qam "$1"
+	git -C "$tmp/elsewhere" push -q origin main
+}
 
+git checkout -q main
+push_upstream_commit 'upstream for git r'
+git r >/dev/null 2>&1
+expect_eq 'git r fetches and rebases onto the default branch' 'upstream for git r' "$(git log -1 --format=%s)"
+
+push_upstream_commit 'upstream for git p'
 git p >/dev/null 2>&1
-expect_eq 'git p keeps an up to date branch where it is' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+expect_eq 'git p pulls the new commit of the remote branch' 'upstream for git p' "$(git log -1 --format=%s)"
+
+expect_refusal 'git r refuses an unknown flag' 'unknown flag: -x' git r -x
+expect_refusal 'git cp refuses an unknown flag' 'unknown flag: -x' git cp -x msg
+
+# A remote can name its HEAD branch --upload-pack=<command>, and a clone lands on
+# it. Git runs that command for a remote on disk when the name reaches it as a flag.
+git clone -q "$tmp/origin.git" "$tmp/dash"
+git -C "$tmp/dash" update-ref refs/heads/--upload-pack=pwned HEAD
+git -C "$tmp/dash" symbolic-ref HEAD refs/heads/--upload-pack=pwned
+git -C "$tmp/dash" symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/--upload-pack=pwned
+mkdir -p "$tmp/stub-bin"
+printf '#!/bin/sh\ntouch "%s/pwned.txt"\nexit 1\n' "$tmp" >"$tmp/stub-bin/pwned"
+chmod +x "$tmp/stub-bin/pwned"
+# PATH splits on colons, so it takes /c/... in place of C:/... on Windows.
+stub_path=$(cd "$tmp/stub-bin" && pwd):$PATH
+PATH=$stub_path expect_refusal 'git p refuses a branch name that starts with a dash' 'starts with a dash' git -C "$tmp/dash" p
+PATH=$stub_path expect_refusal 'git master refuses a remote HEAD that starts with a dash' 'starts with a dash' git -C "$tmp/dash" master
+expect_eq 'a branch name that starts with a dash runs no command' no "$(exists "$tmp/pwned.txt")"
 
 expect_in 'git dbm reports an empty list' 'No deletable branches or worktrees with a gone upstream.' "$(git dbm 2>&1)"
 
@@ -186,6 +244,10 @@ expect_in 'git dbm reports an empty list' 'No deletable branches or worktrees wi
 . "$repo/bin/_shared.sh"
 # shellcheck source=bin/_prune.sh
 . "$repo/bin/_prune.sh"
+
+git branch file.txt
+expect_in 'the fzf preview shows a branch named like a file' 'init' "$(eval "${log_preview//'{1}'/file.txt}" 2>&1)"
+git branch -q -D file.txt
 
 # The stubs read scratch, since an exported tmp clashes with TMP on Windows.
 # ask_yes logs each question and answers with $answer_yes.
@@ -205,6 +267,8 @@ export -f fzf
 export scratch=$tmp
 
 git branch delete-plain
+# A tag of the same name makes git print the branch as heads/delete-plain.
+git tag delete-plain
 git worktree add -q -b delete-clean "$tmp/clean worktree"
 git worktree add -q -b delete-dirty "$tmp/dirty"
 git worktree add -q -b delete-locked "$tmp/locked"
@@ -380,6 +444,7 @@ for branch in gone-plain gone-worktree delete-locked main; do
 	git push -q origin --delete "upstream-$branch"
 done
 git branch --set-upstream-to=origin/main kept-worktree >/dev/null
+git tag gone-plain
 read_worktrees
 picked=$(prune_candidates gone)
 expect_in 'the dbm list holds plain branches' $'gone-plain\tbranch\t[branch]' "$picked"
@@ -406,6 +471,7 @@ expect_eq 'git dbm leaves a worktree whose upstream exists' yes "$(exists "$tmp/
 expect_eq 'removing worktrees keeps the shared stash' "$stash_before" "$(git rev-parse refs/stash)"
 
 git branch --set-upstream-to=origin/main main >/dev/null
+git tag kept-worktree
 
 # fzf saves the menu it got, then picks the line that starts with $pick.
 sb_out=$(
@@ -422,6 +488,7 @@ sb_out=$(
 expect_eq 'git sb prints the folder of a branch in another worktree' "__cd__ $tmp/kept" "$sb_out"
 expect_in 'git sb marks the branch of this worktree' '(this worktree)' "$(<"$tmp/menu")"
 expect_eq 'git sb leaves colour out of its menu under NO_COLOR' '' "$(grep -F $'\033' "$tmp/menu" || true)"
+expect_eq 'the fzf preview leaves colour out under NO_COLOR' '' "$(bash -c "${log_preview//\{1\}/main}" | grep -F $'\033' || true)"
 
 # --- the installer ----------------------------------------------------------
 
@@ -446,8 +513,22 @@ install_out=$(
 expect_in 'install.sh offers to remove an alias ~/.gitconfig sets itself' 'asked: Remove the [alias] section' "$install_out"
 expect_in 'a second install.sh run keeps one include.path' 'include.path count: 1' "$install_out"
 
+# git 2.35 lacks `git worktree list -z`, which git db and git dbm read.
+old_git_out=$(
+	# shellcheck source=/dev/null
+	. "$repo/install.sh"
+	# shellcheck disable=SC2329  # warn_old_git calls it
+	git() { echo 'git version 2.35.1'; }
+	warn_old_git
+	printf 'min_git=%s\n' "$min_git"
+)
+expect_in 'install.sh warns about a git without worktree list -z' 'warning: git 2.35 is old' "$old_git_out"
+min_git=${old_git_out##*min_git=}
+expect_in 'install.ps1 warns at the git version install.sh names' "[version]'$min_git'" "$(<"$repo/install.ps1")"
+
 alias_total=$(git config --file "$repo/aliases.gitconfig" --name-only --get-regexp '^alias\.' | grep -c .)
 expect_eq 'git a lists each alias' "$alias_total" "$(git a | grep -c 'bin/git-')"
+expect_in 'git a prints the description under each alias' $'b        bin/git-b\n  Print the current branch name.\n\nc ' "$(git a)"
 
 # ----------------------------------------------------------------------------
 

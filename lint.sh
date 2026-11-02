@@ -138,7 +138,7 @@ run_shellcheck() {
 		echo 'skipped shellcheck (not installed: brew install shellcheck)'
 		return 0
 	fi
-	shellcheck --external-sources bin/* ./*.sh hooks/* || problem 'shellcheck reported problems'
+	shellcheck --external-sources bin/* ./*.sh .github/scripts/*.sh hooks/* || problem 'shellcheck reported problems'
 }
 
 run_shfmt() {
@@ -146,8 +146,8 @@ run_shfmt() {
 		echo 'skipped shfmt (not installed: brew install shfmt)'
 		return 0
 	fi
-	shfmt --diff --case-indent bin/* ./*.sh hooks/* ||
-		problem 'shfmt reported formatting problems, run: shfmt --write --case-indent bin/* ./*.sh hooks/*'
+	shfmt --diff --case-indent bin/* ./*.sh .github/scripts/*.sh hooks/* ||
+		problem 'shfmt reported formatting problems, run: shfmt --write --case-indent bin/* ./*.sh .github/scripts/*.sh hooks/*'
 }
 
 # PowerShell 7 comes first, then Windows PowerShell.

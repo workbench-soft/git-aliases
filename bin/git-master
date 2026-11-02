@@ -6,9 +6,10 @@ set -euo pipefail
 
 remote=$(pick_remote)
 target=$(remote_head_branch "$remote")
+need_plain_branch "$target"
 
 # git refuses to check out a branch another worktree holds, so stop before any change.
-holder=$(git for-each-ref --format='%(worktreepath)' "refs/heads/$target")
+holder=$(worktree_of "$target")
 if [[ -n $holder && $holder != "$(git rev-parse --show-toplevel)" ]]; then
 	abort "$target is checked out at $holder, run git master there"
 fi
@@ -21,6 +22,16 @@ if git show-ref --verify --quiet "refs/heads/$target"; then
 	if [[ -n $unpushed ]]; then
 		echo "$target has commits that $remote/$target lacks:"
 		printf '%s\n' "$unpushed"
+		ask_yes 'Drop these commits?' || abort 'aborted'
+	fi
+fi
+
+# Commits made on a detached HEAD sit on no branch, so the checkout would drop them.
+if ! git symbolic-ref --quiet HEAD >/dev/null; then
+	stray=$(git log --oneline HEAD --not --branches --remotes --tags)
+	if [[ -n $stray ]]; then
+		echo 'HEAD is detached, with commits no branch holds:'
+		printf '%s\n' "$stray"
 		ask_yes 'Drop these commits?' || abort 'aborted'
 	fi
 fi

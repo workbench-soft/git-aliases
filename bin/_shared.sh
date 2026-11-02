@@ -9,12 +9,15 @@ if [[ -z ${NO_COLOR:-} ]] && [[ -t 1 || -t 2 ]]; then
 	CLR_PROMPT=$'\033[1;33m'
 	CLR_FAINT=$'\033[38;5;240m'
 	CLR_HINT=$'\033[38;5;220m'
+	log_colour=always
 else
 	CLR_OFF='' CLR_COMMAND='' CLR_PROMPT='' CLR_FAINT='' CLR_HINT=''
+	log_colour=never
 fi
 
-# fzf fills {1} with the branch of the highlighted line.
-log_preview='git log -n 20 --color=always --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1}'
+# fzf fills {1} with the branch of the highlighted line. The -- keeps a branch
+# named like a file or folder from reading as a path.
+log_preview='git log -n 20 --color='$log_colour' --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1} --'
 
 # Prints "+ <command>" on stderr, as a shell with xtrace would.
 trace() {
@@ -64,8 +67,20 @@ ask_yes() {
 	esac
 }
 
+# A remote picks the branch a clone lands on and the name of its HEAD. Git reads
+# a name that starts with a dash, such as --upload-pack=<command>, as an option.
+need_plain_branch() {
+	[[ $1 != -* ]] || abort "branch name starts with a dash, rename it first: $1"
+}
+
 need_command() {
 	command -v "$1" >/dev/null 2>&1 || abort "$1 is required, but it isn't installed"
+}
+
+# Prints the folder of the worktree that has branch $1 checked out, or an empty
+# result when no worktree has it.
+worktree_of() {
+	git for-each-ref --format='%(worktreepath)' "refs/heads/$1"
 }
 
 # Prints origin, or the single remote when origin is missing.

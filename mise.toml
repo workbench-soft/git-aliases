@@ -10,4 +10,4 @@ run = ["markdownlint-cli2", "bash lint.sh", "oxfmt --check"]
 
 [tasks.format]
 description = "Format the shell scripts and the Markdown"
-run = ["shfmt --write --case-indent bin/* ./*.sh hooks/*", "oxfmt"]
+run = ["shfmt --write --case-indent bin/* ./*.sh .github/scripts/*.sh hooks/*", "oxfmt"]

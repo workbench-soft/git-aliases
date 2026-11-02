@@ -27,15 +27,15 @@ function Save-Copy([string]$File) {
 	Write-Host "  backup: $copy"
 }
 
-# git b and git p rely on `git branch --show-current`, added in git 2.22.
+# git db and git dbm read `git worktree list -z`, added in git 2.36, as in install.sh.
 function Test-GitVersion {
 	if (-not (Get-Command git -CommandType Application -ErrorAction SilentlyContinue)) {
 		Write-Error 'git is not on PATH. Install Git for Windows: winget install Git.Git'
 	}
 	if ((git version) -match '(\d+)\.(\d+)') {
 		$found = [version]"$($Matches[1]).$($Matches[2])"
-		if ($found -lt [version]'2.22') {
-			Write-Host "warning: git $found is old, git b and git p need 2.22 for --show-current"
+		if ($found -lt [version]'2.36') {
+			Write-Host "warning: git $found is old, git db and git dbm need 2.36 for worktree list -z"
 			Write-Host
 		}
 	}

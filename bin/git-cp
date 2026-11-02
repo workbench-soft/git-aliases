@@ -57,5 +57,7 @@ fi
 if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
 	trace_run git push ${push_flags[@]+"${push_flags[@]}"}
 else
-	trace_run git push ${push_flags[@]+"${push_flags[@]}"} -u "$(pick_remote)" HEAD
+	# A failed pick ends the script only from an assignment, so it comes first.
+	remote=$(pick_remote)
+	trace_run git push ${push_flags[@]+"${push_flags[@]}"} -u "$remote" HEAD
 fi

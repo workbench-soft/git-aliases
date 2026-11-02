@@ -15,6 +15,7 @@ main() {
 	choice=$(picker_lines | fzf --ansi --height=40% --reverse --prompt='branch> ' --preview "$log_preview") || exit 0
 	[[ -n $choice ]] || exit 0
 	branch=${choice%% *}
+	need_plain_branch "$branch"
 
 	home=$(worktree_of "$branch")
 	if [[ -n $home && $home != "$here" ]]; then
@@ -27,30 +28,11 @@ main() {
 
 # Newest branch first, each followed by the folder of the worktree that holds it.
 picker_lines() {
-	{
-		held_branches
-		git for-each-ref --sort=-committerdate --format='B%09%(refname:short)' refs/heads/
-	} | awk -F'\t' -v here="$here" -v faint="$CLR_FAINT" -v off="$CLR_OFF" '
-		$1 == "W" { folder[$2] = $3; next }
-		{
-			where = folder[$2]
-			if (where == "") print $2
-			else if (where == here) printf "%-50s %s(this worktree)%s\n", $2, faint, off
-			else printf "%-50s %s%s%s\n", $2, faint, where, off
-		}'
-}
-
-# "W<tab><branch><tab><folder>" for each branch a worktree has checked out.
-held_branches() {
-	git worktree list --porcelain |
-		awk '/^worktree /{folder = substr($0, 10)} /^branch refs\/heads\//{print "W\t" substr($0, 19) "\t" folder}'
-}
-
-worktree_of() {
-	git worktree list --porcelain |
-		awk -v ref="refs/heads/$1" '
-			/^worktree /{folder = substr($0, 10)}
-			/^branch /{if (substr($0, 8) == ref) {print folder; exit}}'
+	git for-each-ref --sort=-committerdate --format='%(refname:lstrip=2)%09%(worktreepath)' refs/heads/ |
+		awk -F'\t' -v here="$here" -v faint="$CLR_FAINT" -v off="$CLR_OFF" '
+			$2 == "" { print $1; next }
+			$2 == here { printf "%-50s %s(this worktree)%s\n", $1, faint, off; next }
+			{ printf "%-50s %s%s%s\n", $1, faint, $2, off }'
 }
 
 main

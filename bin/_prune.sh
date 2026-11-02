@@ -14,34 +14,41 @@
 # Mode "gone" keeps branches whose upstream was deleted. Mode "all" keeps every
 # branch and adds detached worktrees, with their commit in the first column.
 prune_candidates() {
-	local mode=$1 here current all_branches gone_list='' branch slot in_worktree
+	local mode=$1 here current all_branches gone_list='' held=$'\n' branch slot label
 	here=$(git rev-parse --show-toplevel) || return
 	current=$(git branch --show-current) || return
-	all_branches=$(git for-each-ref --sort=-committerdate --format='%(refname:short)' refs/heads/) || return
+	all_branches=$(git for-each-ref --sort=-committerdate --format='%(refname:lstrip=2)' refs/heads/) || return
 	if [[ $mode == gone ]]; then
-		gone_list=$(branches_with_gone_upstream) || return
+		gone_list=$'\n'$(branches_with_gone_upstream)$'\n' || return
 	fi
+	# Only a branch that a worktree holds needs the loop over the worktrees.
+	for slot in "${!wt_path[@]}"; do
+		held+=${wt_branch[slot]}$'\n'
+	done
 
 	while IFS= read -r branch; do
 		[[ -n $branch && $branch != "$current" ]] || continue
-		if [[ $mode == gone && $'\n'$gone_list$'\n' != *$'\n'"$branch"$'\n'* ]]; then
+		if [[ $mode == gone && $gone_list != *$'\n'"$branch"$'\n'* ]]; then
 			continue
 		fi
-		in_worktree=0
+		if [[ $held != *$'\n'"$branch"$'\n'* ]]; then
+			printf '%s\tbranch\t[branch]\n' "$branch"
+			continue
+		fi
 		for slot in "${!wt_path[@]}"; do
 			[[ ${wt_branch[slot]} == "$branch" ]] || continue
-			in_worktree=1
 			worktree_removable "$slot" "$here" || continue
-			printf '%s\t%s\t[worktree] %s\n' "$branch" "$slot" "$(one_line "${wt_path[slot]}")"
+			one_line label "${wt_path[slot]}"
+			printf '%s\t%s\t[worktree] %s\n' "$branch" "$slot" "$label"
 		done
-		((in_worktree)) || printf '%s\tbranch\t[branch]\n' "$branch"
 	done <<<"$all_branches"
 
 	[[ $mode == all ]] || return 0
 	for slot in "${!wt_path[@]}"; do
 		[[ -z ${wt_branch[slot]} ]] || continue
 		worktree_removable "$slot" "$here" || continue
-		printf '%s\t%s\t[worktree detached] %s\n' "${wt_head[slot]}" "$slot" "$(one_line "${wt_path[slot]}")"
+		one_line label "${wt_path[slot]}"
+		printf '%s\t%s\t[worktree detached] %s\n' "${wt_head[slot]}" "$slot" "$label"
 	done
 }
 
@@ -111,7 +118,7 @@ read_worktrees() {
 }
 
 branches_with_gone_upstream() {
-	git for-each-ref --format='%(refname:short) %(upstream:track)' refs/heads/ |
+	git for-each-ref --format='%(refname:lstrip=2) %(upstream:track)' refs/heads/ |
 		awk '/\[gone\]/ {print $1}'
 }
 
@@ -126,10 +133,11 @@ worktree_removable() {
 	return 0
 }
 
-# The picker splits on tabs and lines, so the label shows both as spaces.
+# The picker splits on tabs and lines, so the label shows both as spaces. It
+# sets the variable named in $1, since a "$(...)" per worktree costs a fork.
 one_line() {
-	local text=${1//$'\t'/ }
-	printf '%s\n' "${text//$'\n'/ }"
+	local text=${2//$'\t'/ }
+	printf -v "$1" '%s' "${text//$'\n'/ }"
 }
 
 worktree_listed() {
@@ -177,7 +185,7 @@ remove_stale_folder() {
 drop_worktree_branch() {
 	local branch=$1 slot=$2 still_at
 	[[ -n ${wt_branch[slot]} ]] || return 0
-	still_at=$(git for-each-ref --format='%(worktreepath)' "refs/heads/$branch")
+	still_at=$(worktree_of "$branch")
 	if [[ -n $still_at ]]; then
 		trace "Keeping branch '$branch': still used by worktree '$still_at'"
 		return 0

@@ -5,6 +5,7 @@ set -euo pipefail
 . "$(dirname "$0")/_shared.sh"
 
 remote=$(pick_remote)
-fork_point=$(git merge-base HEAD "$remote/$(remote_head_branch "$remote")")
+default_branch=$(remote_head_branch "$remote")
+fork_point=$(git merge-base HEAD "$remote/$default_branch")
 
 trace_run git reset --soft "$fork_point"
