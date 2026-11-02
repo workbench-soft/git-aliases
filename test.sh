@@ -109,6 +109,9 @@ expect_refusal 'an alias in a repo with no remote says so' 'no remote set up' gi
 expect_refusal 'git r -h works in a repo with no remote' 'usage: git r' git -C "$tmp/no-remote" r -h
 expect_eq 'git p stops at the missing remote' 'error: no remote set up, add one with: git remote add origin <url>' "$(git -C "$tmp/no-remote" p 2>&1 || true)"
 expect_eq 'git cp stops at the missing remote' '' "$(git -C "$tmp/no-remote" cp -s msg 2>&1 | grep -F '+ git push' || true)"
+git -C "$tmp/no-remote" commit -q --allow-empty -m 'first'
+git -C "$tmp/no-remote" remote add origin "$tmp/origin.git"
+expect_eq 'git srmb stops at the missing origin/HEAD' '' "$(git -C "$tmp/no-remote" srmb 2>&1 | grep -F 'fatal:' || true)"
 
 expect_in 'the usage lists each flag' '-f  push with --force-with-lease' "$(git cp -h 2>&1 || true)"
 

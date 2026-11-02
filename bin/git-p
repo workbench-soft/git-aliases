@@ -11,5 +11,7 @@ need_plain_branch "$current"
 # An abort inside "$(...)" in the argument list would not stop the script.
 remote=$(pick_remote)
 
+# A failed pick ends the script only from an assignment, so it comes first.
+remote=$(pick_remote)
 # Naming the remote branch outright lets a branch with no upstream pull too.
 trace_run git pull --rebase "$remote" "$current"
