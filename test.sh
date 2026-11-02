@@ -465,6 +465,7 @@ expect_in 'a second install.sh run keeps one include.path' 'include.path count: 
 
 alias_total=$(git config --file "$repo/aliases.gitconfig" --name-only --get-regexp '^alias\.' | grep -c .)
 expect_eq 'git a lists each alias' "$alias_total" "$(git a | grep -c 'bin/git-')"
+expect_in 'git a prints the description under each alias' $'b        bin/git-b\n  Print the current branch name.\n\nc ' "$(git a)"
 
 # ----------------------------------------------------------------------------
 
