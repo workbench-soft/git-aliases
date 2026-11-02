@@ -40,6 +40,7 @@ jobs:
           cache_key_prefix: mise-v2
       - run: ./lint.sh
       - run: oxfmt --check
+      - run: markdownlint-cli2
       # test.sh expects Git for Windows paths. On Linux it stops early, see TODO.md.
       - run: ./test.sh
         if: runner.os == 'Windows'
