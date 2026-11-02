@@ -10,25 +10,25 @@ previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' "$ref^
 range=${previous:+$previous..}$ref
 
 commits() {
-  git log --reverse --no-merges --format='%H %s' "$range" | grep -E "$1" | cut -d' ' -f1 || true
+	git log --reverse --no-merges --format='%H %s' "$range" | grep -E "$1" | cut -d' ' -f1 || true
 }
 
 # The subject minus its type, then the first paragraph of the body. Later paragraphs are for developers.
 note() {
-  git log -1 --format='%s' "$1" | sed -E 's/^[a-z]+(\([^)]*\))?!?: //' |
-    awk -v sha="$(git rev-parse --short "$1")" '{ print "- " toupper(substr($0, 1, 1)) substr($0, 2) " (" sha ")" }'
-  git log -1 --format='%b' "$1" | awk '
+	git log -1 --format='%s' "$1" | sed -E 's/^[a-z]+(\([^)]*\))?!?: //' |
+		awk -v sha="$(git rev-parse --short "$1")" '{ print "- " toupper(substr($0, 1, 1)) substr($0, 2) " (" sha ")" }'
+	git log -1 --format='%b' "$1" | awk '
     /^(Co-authored-by|Signed-off-by):/ { next }
     /^[[:space:]]*$/ { if (seen) exit; next }
     { seen = 1; print "  " $0 }'
 }
 
 section() {
-  shas=$(commits "$2")
-  [ -n "$shas" ] || return 0
-  printf '## %s\n\n' "$1"
-  for sha in $shas; do note "$sha"; done
-  echo
+	shas=$(commits "$2")
+	[ -n "$shas" ] || return 0
+	printf '## %s\n\n' "$1"
+	for sha in $shas; do note "$sha"; done
+	echo
 }
 
 section 'New' '^[0-9a-f]+ feat(\([^)]*\))?!?: '
@@ -36,13 +36,13 @@ section 'Fixes' '^[0-9a-f]+ fix(\([^)]*\))?!?: '
 section 'Faster' '^[0-9a-f]+ perf(\([^)]*\))?!?: '
 
 others=$(git log --reverse --no-merges --format='%H %s' "$range" |
-  grep -vE '^[0-9a-f]+ (feat|fix|perf)(\([^)]*\))?!?: ' | cut -d' ' -f2- || true)
+	grep -vE '^[0-9a-f]+ (feat|fix|perf)(\([^)]*\))?!?: ' | cut -d' ' -f2- || true)
 if [ -n "$others" ]; then
-  printf '<details><summary>Other changes</summary>\n\n'
-  echo "$others" | sed 's/^/- /'
-  printf '\n</details>\n\n'
+	printf '<details><summary>Other changes</summary>\n\n'
+	echo "$others" | sed 's/^/- /'
+	printf '\n</details>\n\n'
 fi
 
 if [ -n "$previous" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
-  echo "**Full Changelog**: https://github.com/$GITHUB_REPOSITORY/compare/$previous...$tag"
+	echo "**Full Changelog**: https://github.com/$GITHUB_REPOSITORY/compare/$previous...$tag"
 fi
