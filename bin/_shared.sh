@@ -15,8 +15,9 @@ else
 	log_colour=never
 fi
 
-# fzf fills {1} with the branch of the highlighted line.
-log_preview='git log -n 20 --color='$log_colour' --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1}'
+# fzf fills {1} with the branch of the highlighted line. The -- keeps a branch
+# named like a file or folder from reading as a path.
+log_preview='git log -n 20 --color='$log_colour' --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1} --'
 
 # Prints "+ <command>" on stderr, as a shell with xtrace would.
 trace() {

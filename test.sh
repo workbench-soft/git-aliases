@@ -215,6 +215,10 @@ expect_in 'git dbm reports an empty list' 'No deletable branches or worktrees wi
 # shellcheck source=bin/_prune.sh
 . "$repo/bin/_prune.sh"
 
+git branch file.txt
+expect_in 'the fzf preview shows a branch named like a file' 'init' "$(eval "${log_preview//'{1}'/file.txt}" 2>&1)"
+git branch -q -D file.txt
+
 # The stubs read scratch, since an exported tmp clashes with TMP on Windows.
 # ask_yes logs each question and answers with $answer_yes.
 ask_yes() {
