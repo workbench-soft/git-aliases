@@ -18,7 +18,7 @@ esac
 # part ending in ".lock" and a dot or slash at either end, so those go too.
 slug=$(printf '%s' "$*" |
 	tr '[:upper:]' '[:lower:]' |
-	sed -E 's|[^a-z0-9/_.-]+|-|g; s/-+/-/g; s/[.][.]+/./g; s|/+|/|g; s|/[.]+|/|g; s|^[-./]+||; s|[-./]+$||; s#[.]lock(/|$)#-lock\1#g')
+	sed -E 's|[^a-z0-9/_.-]+|-|g; s/-+/-/g; s/[.][.]+/./g; s|/[.]+|/|g; s|/+|/|g; s|^[-./]+||; s|[-./]+$||; s#[.]lock(/|$)#-lock\1#g')
 
 [[ -n $slug ]] || show_usage "$synopsis" "${flag_help[@]}"
 
