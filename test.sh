@@ -107,6 +107,8 @@ done
 git init -q "$tmp/no-remote"
 expect_refusal 'an alias in a repo with no remote says so' 'no remote set up' git -C "$tmp/no-remote" master
 expect_refusal 'git r -h works in a repo with no remote' 'usage: git r' git -C "$tmp/no-remote" r -h
+expect_eq 'git p stops at the missing remote' 'error: no remote set up, add one with: git remote add origin <url>' "$(git -C "$tmp/no-remote" p 2>&1 || true)"
+expect_eq 'git cp stops at the missing remote' '' "$(git -C "$tmp/no-remote" cp -s msg 2>&1 | grep -F '+ git push' || true)"
 
 expect_in 'the usage lists each flag' '-f  push with --force-with-lease' "$(git cp -h 2>&1 || true)"
 

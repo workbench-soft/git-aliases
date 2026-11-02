@@ -8,5 +8,8 @@ current=$(git branch --show-current)
 [[ -n $current ]] || abort 'detached HEAD, nothing to pull'
 need_plain_branch "$current"
 
+# An abort inside "$(...)" in the argument list would not stop the script.
+remote=$(pick_remote)
+
 # Naming the remote branch outright lets a branch with no upstream pull too.
-trace_run git pull --rebase "$(pick_remote)" "$current"
+trace_run git pull --rebase "$remote" "$current"
