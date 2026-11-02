@@ -17,7 +17,7 @@ prune_candidates() {
 	local mode=$1 here current all_branches gone_list='' held=$'\n' branch slot label
 	here=$(git rev-parse --show-toplevel) || return
 	current=$(git branch --show-current) || return
-	all_branches=$(git for-each-ref --sort=-committerdate --format='%(refname:short)' refs/heads/) || return
+	all_branches=$(git for-each-ref --sort=-committerdate --format='%(refname:lstrip=2)' refs/heads/) || return
 	if [[ $mode == gone ]]; then
 		gone_list=$'\n'$(branches_with_gone_upstream)$'\n' || return
 	fi
@@ -118,7 +118,7 @@ read_worktrees() {
 }
 
 branches_with_gone_upstream() {
-	git for-each-ref --format='%(refname:short) %(upstream:track)' refs/heads/ |
+	git for-each-ref --format='%(refname:lstrip=2) %(upstream:track)' refs/heads/ |
 		awk '/\[gone\]/ {print $1}'
 }
 

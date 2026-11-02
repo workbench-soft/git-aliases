@@ -227,6 +227,8 @@ export -f fzf
 export scratch=$tmp
 
 git branch delete-plain
+# A tag of the same name makes git print the branch as heads/delete-plain.
+git tag delete-plain
 git worktree add -q -b delete-clean "$tmp/clean worktree"
 git worktree add -q -b delete-dirty "$tmp/dirty"
 git worktree add -q -b delete-locked "$tmp/locked"
@@ -402,6 +404,7 @@ for branch in gone-plain gone-worktree delete-locked main; do
 	git push -q origin --delete "upstream-$branch"
 done
 git branch --set-upstream-to=origin/main kept-worktree >/dev/null
+git tag gone-plain
 read_worktrees
 picked=$(prune_candidates gone)
 expect_in 'the dbm list holds plain branches' $'gone-plain\tbranch\t[branch]' "$picked"
@@ -428,6 +431,7 @@ expect_eq 'git dbm leaves a worktree whose upstream exists' yes "$(exists "$tmp/
 expect_eq 'removing worktrees keeps the shared stash' "$stash_before" "$(git rev-parse refs/stash)"
 
 git branch --set-upstream-to=origin/main main >/dev/null
+git tag kept-worktree
 
 # fzf saves the menu it got, then picks the line that starts with $pick.
 sb_out=$(

@@ -30,7 +30,7 @@ main() {
 picker_lines() {
 	{
 		held_branches
-		git for-each-ref --sort=-committerdate --format='B%09%(refname:short)' refs/heads/
+		git for-each-ref --sort=-committerdate --format='B%09%(refname:lstrip=2)' refs/heads/
 	} | awk -F'\t' -v here="$here" -v faint="$CLR_FAINT" -v off="$CLR_OFF" '
 		$1 == "W" { folder[$2] = $3; next }
 		{
