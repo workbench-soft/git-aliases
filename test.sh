@@ -184,12 +184,26 @@ git -C "$tmp/elsewhere" push -q -u origin remote-only
 git co remote-only >/dev/null 2>&1
 expect_eq 'git co fetches a branch only the remote has' remote-only "$(git b)"
 
-git checkout -q main
-git r >/dev/null 2>&1
-expect_eq 'git r keeps an up to date branch where it is' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+# Pushes a commit to origin/main from the other clone, so an alias here has
+# something to fetch.
+push_upstream_commit() {
+	git -C "$tmp/elsewhere" checkout -q main
+	echo "$1" >>"$tmp/elsewhere/file.txt"
+	git -C "$tmp/elsewhere" commit -qam "$1"
+	git -C "$tmp/elsewhere" push -q origin main
+}
 
+git checkout -q main
+push_upstream_commit 'upstream for git r'
+git r >/dev/null 2>&1
+expect_eq 'git r fetches and rebases onto the default branch' 'upstream for git r' "$(git log -1 --format=%s)"
+
+push_upstream_commit 'upstream for git p'
 git p >/dev/null 2>&1
-expect_eq 'git p keeps an up to date branch where it is' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+expect_eq 'git p pulls the new commit of the remote branch' 'upstream for git p' "$(git log -1 --format=%s)"
+
+expect_refusal 'git r refuses an unknown flag' 'unknown flag: -x' git r -x
+expect_refusal 'git cp refuses an unknown flag' 'unknown flag: -x' git cp -x msg
 
 # A remote can name its HEAD branch --upload-pack=<command>, and a clone lands on
 # it. Git runs that command for a remote on disk when the name reaches it as a flag.
