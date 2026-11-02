@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **CI** spec entries may repeat their Changes heading, and mise installs npm tools with npm, so oxfmt runs on Windows.
 - **CI** Release waits while a PR of an agent session is open, so the last merge of a batch releases them all.
 - **Docs** each heading of `docs/features.md` links its spec, and each feature that had no spec got one.
 - **Markdown** markdownlint-cli2 lints the docs in `mise run lint`.

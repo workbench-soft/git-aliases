@@ -4,6 +4,10 @@
 shellcheck = "0.11.0"
 shfmt = "3.14.1"
 
+[settings]
+# The auto pick of a newer mise installs oxfmt on Windows without its tinypool package.
+npm.package_manager = "npm"
+
 [tasks.lint]
 description = "Check the repo rules, the shell scripts and the Markdown format"
 run = ["markdownlint-cli2", "bash lint.sh", "oxfmt --check"]
