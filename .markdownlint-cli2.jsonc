@@ -4,6 +4,8 @@
 		"MD013": false,
 		// Each bullet opens with its point in bold, which looks like a heading to MD036.
 		"MD036": false,
+		// Each spec entry has its own Changes heading.
+		"MD024": { "siblings_only": true },
 	},
 	// CLAUDE.md holds only the @AGENTS.md import line.
 	"ignores": [
