@@ -185,7 +185,7 @@ remove_stale_folder() {
 drop_worktree_branch() {
 	local branch=$1 slot=$2 still_at
 	[[ -n ${wt_branch[slot]} ]] || return 0
-	still_at=$(git for-each-ref --format='%(worktreepath)' "refs/heads/$branch")
+	still_at=$(worktree_of "$branch")
 	if [[ -n $still_at ]]; then
 		trace "Keeping branch '$branch': still used by worktree '$still_at'"
 		return 0

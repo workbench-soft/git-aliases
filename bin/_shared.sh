@@ -77,6 +77,12 @@ need_command() {
 	command -v "$1" >/dev/null 2>&1 || abort "$1 is required, but it isn't installed"
 }
 
+# Prints the folder of the worktree that has branch $1 checked out, or an empty
+# result when no worktree has it.
+worktree_of() {
+	git for-each-ref --format='%(worktreepath)' "refs/heads/$1"
+}
+
 # Prints origin, or the single remote when origin is missing.
 pick_remote() {
 	git remote get-url origin >/dev/null 2>&1 && {
