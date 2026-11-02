@@ -483,6 +483,19 @@ install_out=$(
 expect_in 'install.sh offers to remove an alias ~/.gitconfig sets itself' 'asked: Remove the [alias] section' "$install_out"
 expect_in 'a second install.sh run keeps one include.path' 'include.path count: 1' "$install_out"
 
+# git 2.35 lacks `git worktree list -z`, which git db and git dbm read.
+old_git_out=$(
+	# shellcheck source=/dev/null
+	. "$repo/install.sh"
+	# shellcheck disable=SC2329  # warn_old_git calls it
+	git() { echo 'git version 2.35.1'; }
+	warn_old_git
+	printf 'min_git=%s\n' "$min_git"
+)
+expect_in 'install.sh warns about a git without worktree list -z' 'warning: git 2.35 is old' "$old_git_out"
+min_git=${old_git_out##*min_git=}
+expect_in 'install.ps1 warns at the git version install.sh names' "[version]'$min_git'" "$(<"$repo/install.ps1")"
+
 alias_total=$(git config --file "$repo/aliases.gitconfig" --name-only --get-regexp '^alias\.' | grep -c .)
 expect_eq 'git a lists each alias' "$alias_total" "$(git a | grep -c 'bin/git-')"
 expect_in 'git a prints the description under each alias' $'b        bin/git-b\n  Print the current branch name.\n\nc ' "$(git a)"

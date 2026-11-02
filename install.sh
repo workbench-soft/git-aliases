@@ -36,12 +36,14 @@ keep_copy() {
 	echo "  backup: $copy"
 }
 
-# git b and git p rely on `git branch --show-current`, added in git 2.22.
+# git db and git dbm read `git worktree list -z`, added in git 2.36.
+# install.ps1 warns at the same version, and test.sh keeps the two in step.
+min_git=2.36
 warn_old_git() {
 	local major minor
 	read -r major minor <<<"$(git version | sed -E 's/[^0-9]*([0-9]+)\.([0-9]+).*/\1 \2/')"
-	if ((major < 2 || (major == 2 && minor < 22))); then
-		echo "warning: git $major.$minor is old, git b and git p need 2.22 for --show-current"
+	if ((major < ${min_git%.*} || (major == ${min_git%.*} && minor < ${min_git#*.}))); then
+		echo "warning: git $major.$minor is old, git db and git dbm need $min_git for worktree list -z"
 		echo
 	fi
 }
