@@ -439,6 +439,7 @@ sb_out=$(
 expect_eq 'git sb prints the folder of a branch in another worktree' "__cd__ $tmp/kept" "$sb_out"
 expect_in 'git sb marks the branch of this worktree' '(this worktree)' "$(<"$tmp/menu")"
 expect_eq 'git sb leaves colour out of its menu under NO_COLOR' '' "$(grep -F $'\033' "$tmp/menu" || true)"
+expect_eq 'the fzf preview leaves colour out under NO_COLOR' '' "$(bash -c "${log_preview//\{1\}/main}" | grep -F $'\033' || true)"
 
 # --- the installer ----------------------------------------------------------
 

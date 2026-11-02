@@ -9,12 +9,14 @@ if [[ -z ${NO_COLOR:-} ]] && [[ -t 1 || -t 2 ]]; then
 	CLR_PROMPT=$'\033[1;33m'
 	CLR_FAINT=$'\033[38;5;240m'
 	CLR_HINT=$'\033[38;5;220m'
+	log_colour=always
 else
 	CLR_OFF='' CLR_COMMAND='' CLR_PROMPT='' CLR_FAINT='' CLR_HINT=''
+	log_colour=never
 fi
 
 # fzf fills {1} with the branch of the highlighted line.
-log_preview='git log -n 20 --color=always --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1}'
+log_preview='git log -n 20 --color='$log_colour' --date=short --pretty=format:"%C(auto)%h %ad %an %s" {1}'
 
 # Prints "+ <command>" on stderr, as a shell with xtrace would.
 trace() {
