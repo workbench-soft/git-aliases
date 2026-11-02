@@ -141,6 +141,10 @@ git c -- -fixed with a dash >/dev/null 2>&1
 expect_eq 'git c keeps a leading dash after --' '-fixed with a dash' "$(git log -1 --format=%s)"
 git reset -q --soft HEAD~1
 
+git c '--author=Other Person <other@example.com>' by someone else >/dev/null 2>&1
+expect_eq 'git c hands a flag to git commit' 'Other Person|by someone else' "$(git log -1 --format='%an|%s')"
+git reset -q --soft HEAD~1
+
 expect_in 'git last prints the last commit' 'fixed the file' "$(git last)"
 
 git sr1 >/dev/null 2>&1
