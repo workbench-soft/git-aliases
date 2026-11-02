@@ -161,6 +161,11 @@ expect_refusal 'git master lists the commits it would drop' 'local only' git -c 
 expect_eq 'a no keeps the local commit' 'local only' "$(git log -1 --format=%s)"
 answer_yes=yes git -c gitaliases.dir="$tmp/master-alias" master >/dev/null 2>&1
 expect_eq 'a yes resets to the remote' "$(git rev-parse origin/main)" "$(git rev-parse HEAD)"
+git checkout -q --detach
+git commit -q --allow-empty -m 'detached only'
+expect_refusal 'git master lists the detached commits it would drop' 'detached only' git -c gitaliases.dir="$tmp/master-alias" master
+expect_eq 'a no keeps the detached commit' 'detached only' "$(git log -1 --format=%s)"
+git checkout -q main 2>/dev/null
 
 git co feature-x >/dev/null 2>&1
 expect_eq 'git co switches to a local branch' feature-x "$(git b)"
