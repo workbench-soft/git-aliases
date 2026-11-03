@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
-# install.sh sets core.hooksPath to this folder, so lint.sh gates each commit.
+# install.sh sets core.hooksPath to this folder, so each commit passes the
+# checks CI runs: lint.sh, then oxfmt and markdownlint-cli2 when installed.
 set -euo pipefail
 
-exec "$(git rev-parse --show-toplevel)/lint.sh"
+# mise.toml pins both tools, so `mise install` puts them on PATH.
+run_if_installed() {
+	if command -v "$1" >/dev/null 2>&1; then
+		"$@"
+	else
+		echo "skipped $1 (not installed: mise install)"
+	fi
+}
+
+cd "$(git rev-parse --show-toplevel)"
+./lint.sh
+run_if_installed oxfmt --check
+run_if_installed markdownlint-cli2
