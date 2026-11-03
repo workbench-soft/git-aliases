@@ -39,6 +39,8 @@ jobs:
       - name: Install shfmt, shellcheck and oxfmt
         uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
+          # Without a pin the action takes the newest mise, and a newer mise once broke the oxfmt install.
+          version: 2026.10.25
           # v1 held a Windows oxfmt install without its tinypool package.
           cache_key_prefix: mise-v2
       - run: ./lint.sh
