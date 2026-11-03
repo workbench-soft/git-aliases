@@ -475,6 +475,11 @@ expect_eq 'the dbm list leaves out branches whose upstream exists' '' "$(grep -F
 git branch prune-only
 git push -qu origin prune-only
 git --git-dir="$tmp/origin.git" update-ref -d refs/heads/prune-only
+git init -q --bare "$tmp/second.git"
+git remote add second "$tmp/second.git"
+git branch prune-second
+git push -qu second prune-second
+git --git-dir="$tmp/second.git" update-ref -d refs/heads/prune-second
 # A copy of the alias, with the stub in place of the terminal question.
 mkdir -p "$tmp/aliases/bin"
 cp "$repo/bin/git-dbm" "$repo/bin/_shared.sh" "$repo/bin/_prune.sh" "$tmp/aliases/bin/"
@@ -485,6 +490,8 @@ expect_in 'git dbm prints the branch labels' 'gone-plain [branch]' "$(<"$tmp/out
 expect_in 'git dbm prints the worktree labels' "gone-worktree [worktree] $tmp/gone" "$(<"$tmp/out")"
 expect_eq 'git dbm deletes the gone branches' '' "$(git branch --list 'gone-*')"
 expect_eq 'git dbm prunes before it builds the list' '' "$(git branch --list prune-only)"
+expect_eq 'git dbm prunes each remote, not only origin' '' "$(git branch --list prune-second)"
+git remote remove second
 expect_eq 'git dbm deletes the gone worktree folders' no "$(exists "$tmp/gone")"
 expect_eq 'git dbm leaves the locked worktree files' yes "$(exists "$tmp/locked/file.txt")"
 expect_eq 'git dbm leaves a worktree whose upstream exists' yes "$(exists "$tmp/kept/file.txt")"
