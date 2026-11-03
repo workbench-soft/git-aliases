@@ -20,5 +20,7 @@ if git show-ref --verify --quiet "refs/heads/$wanted"; then
 fi
 
 remote=$(pick_remote)
-trace_run git fetch "$remote" "$wanted"
+# The full refspec skips a tag of the same name, and it fills $remote/<branch>
+# even in a clone made with --single-branch.
+trace_run git fetch "$remote" "+refs/heads/$wanted:refs/remotes/$remote/$wanted"
 trace_run git checkout -b "$wanted" "$remote/$wanted"

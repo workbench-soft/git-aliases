@@ -1,0 +1,11 @@
+# Each week Dependabot opens one PR with the action updates, SHA pins and tag comments both.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

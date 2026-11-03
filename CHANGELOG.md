@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **git p, git co, git master** fetch the branch even when a tag has the same name, and git co works in a `--single-branch` clone.
+- **git dbm** prunes every remote, so a branch gone from a fork remote shows up too. A remote out of reach gets a warning, and the rest go on.
+- **PowerShell** the `git` function passes piped input on to git, so `Get-Content x.patch | git apply` works.
+- **git sb** in PowerShell moves to a worktree folder with a non-ASCII name.
+- **git p** looks up the remote once.
+- **CI** the pre-commit hook runs oxfmt and markdownlint on the staged files, as CI does. The lint job pins mise and node, keeps its token out of `.git/config`, and Dependabot bumps the pinned actions.
+
 - **CI** spec entries may repeat their Changes heading, and mise installs npm tools with npm, so oxfmt runs on Windows.
 - **CI** Release waits while a PR of an agent session is open, so the last merge of a batch releases them all.
 - **Docs** each heading of `docs/features.md` links its spec, and each feature that had no spec got one.

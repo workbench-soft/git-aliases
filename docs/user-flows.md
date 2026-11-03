@@ -92,7 +92,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  dbm["git dbm"] --> prune["git fetch --prune"]
+  dbm["git dbm"] --> prune["git fetch --all --prune"]
   prune --> gone["branches whose upstream is gone"]
   db["git db"] --> fzf["fzf multi-pick"]
   gone --> del["delete clean worktrees and branches"]

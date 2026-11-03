@@ -9,13 +9,22 @@
 function git {
 	$gitExe = Get-Command git -CommandType Application | Select-Object -First 1
 	if ($args.Count -eq 0 -or $args[0] -ne 'sb') {
-		& $gitExe @args
+		# A pipe, such as Get-Content x.patch | git apply, reaches git only through $input.
+		if ($MyInvocation.ExpectingInput) { $input | & $gitExe @args } else { & $gitExe @args }
 		return
 	}
 
 	$sbArgs = @($args | Select-Object -Skip 1)
-	$reply = @(& $gitExe sb @sbArgs)
-	$code = $LASTEXITCODE
+	# Git prints UTF-8, and Windows PowerShell reads it in the console code page,
+	# which garbles a folder name outside ASCII.
+	$consoleEncoding = [Console]::OutputEncoding
+	[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+	try {
+		$reply = @(& $gitExe sb @sbArgs)
+		$code = $LASTEXITCODE
+	} finally {
+		[Console]::OutputEncoding = $consoleEncoding
+	}
 	# git checkout prints lines such as "Your branch is up to date" on stdout.
 	$reply | Where-Object { $_ -notlike '__cd__ *' }
 	$cdLine = $reply | Where-Object { $_ -like '__cd__ *' } | Select-Object -First 1
