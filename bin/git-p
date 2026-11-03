@@ -11,4 +11,5 @@ need_plain_branch "$current"
 # A failed pick ends the script only from an assignment, so it comes first.
 remote=$(pick_remote)
 # Naming the remote branch outright lets a branch with no upstream pull too.
-trace_run git pull --rebase "$remote" "$current"
+# The refs/heads/ prefix keeps a tag of the same name from standing in for it.
+trace_run git pull --rebase "$remote" "refs/heads/$current"

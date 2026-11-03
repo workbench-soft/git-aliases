@@ -15,7 +15,8 @@ if [[ -n $holder && $holder != "$(git rev-parse --show-toplevel)" ]]; then
 fi
 
 # The fetch comes first, so both questions come before anything is dropped.
-trace_run git fetch "$remote" "$target"
+# The full refspec keeps a tag of the same name from standing in for the branch.
+trace_run git fetch "$remote" "+refs/heads/$target:refs/remotes/$remote/$target"
 
 if git show-ref --verify --quiet "refs/heads/$target"; then
 	unpushed=$(git log --oneline "$remote/$target..refs/heads/$target")

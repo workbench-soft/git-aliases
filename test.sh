@@ -199,6 +199,9 @@ git -C "$tmp/elsewhere" push -q -u origin remote-only
 
 git co remote-only >/dev/null 2>&1
 expect_eq 'git co fetches a branch only the remote has' remote-only "$(git b)"
+git clone -q --single-branch "$tmp/origin.git" "$tmp/single"
+git -C "$tmp/single" co remote-only >/dev/null 2>&1
+expect_eq 'git co fetches a branch a --single-branch clone lacks' remote-only "$(git -C "$tmp/single" b)"
 
 # Pushes a commit to origin/main from the other clone, so an alias here has
 # something to fetch.
@@ -220,6 +223,23 @@ expect_eq 'git p pulls the new commit of the remote branch' 'upstream for git p'
 
 expect_refusal 'git r refuses an unknown flag' 'unknown flag: -x' git r -x
 expect_refusal 'git cp refuses an unknown flag' 'unknown flag: -x' git cp -x msg
+
+# The remote holds a tag named like each branch, one commit behind the branch.
+git init -q --bare "$tmp/twin.git"
+git clone -q "$tmp/twin.git" "$tmp/twin" 2>/dev/null
+git -C "$tmp/twin" commit -q --allow-empty -m 'twin base'
+git -C "$tmp/twin" push -q -u origin main
+git -C "$tmp/twin" push -q origin main:refs/heads/twin main:refs/tags/twin main:refs/tags/twin-co main:refs/tags/main
+git clone -q "$tmp/twin.git" "$tmp/twin-ahead"
+git -C "$tmp/twin-ahead" commit -q --allow-empty -m 'twin ahead'
+git -C "$tmp/twin-ahead" push -q origin HEAD:refs/heads/main HEAD:refs/heads/twin HEAD:refs/heads/twin-co
+git -C "$tmp/twin" checkout -q -b twin
+git -C "$tmp/twin" p >/dev/null 2>&1
+expect_eq 'git p pulls the branch, not a tag of the same name' 'twin ahead' "$(git -C "$tmp/twin" log -1 --format=%s)"
+git -C "$tmp/twin" co twin-co >/dev/null 2>&1
+expect_eq 'git co fetches the branch, not a tag of the same name' 'twin-co|twin ahead' "$(git -C "$tmp/twin" b)|$(git -C "$tmp/twin" log -1 --format=%s)"
+git -C "$tmp/twin" master >/dev/null 2>&1
+expect_eq 'git master resets to the branch, not a tag of the same name' 'twin ahead' "$(git -C "$tmp/twin" log -1 --format=%s)"
 
 # A remote can name its HEAD branch --upload-pack=<command>, and a clone lands on
 # it. Git runs that command for a remote on disk when the name reaches it as a flag.
