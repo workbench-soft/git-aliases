@@ -497,6 +497,18 @@ if [[ $on_windows == yes ]] && command -v powershell >/dev/null 2>&1; then
 	# The function wraps every git call, so a pipe into git has to reach git.
 	ps_out=$(powershell -NoProfile -Command ". '$ps1_wrapper'; \$direct = 'piped' | git.exe hash-object --stdin; \$wrapped = 'piped' | git hash-object --stdin; \"\$direct \$wrapped\"")
 	expect_eq 'the PowerShell git function hands a pipe on to git' "${ps_out%% *} ${ps_out%% *}" "${ps_out//$'\r'/}"
+
+	# bin/git-sb writes the "__cd__ <path>" line and this function reads it, so
+	# the two get checked together. A stub fzf on PATH picks kept-worktree.
+	mkdir -p "$tmp/fzf-bin"
+	printf '#!/bin/sh\ngrep -m 1 "^kept-worktree "\n' >"$tmp/fzf-bin/fzf"
+	chmod +x "$tmp/fzf-bin/fzf"
+	ps_cd=$(
+		unset -f fzf
+		PATH=$(cd "$tmp/fzf-bin" && pwd):$PATH
+		powershell -NoProfile -Command ". '$ps1_wrapper'; git sb 2>\$null; (Get-Location).Path.Replace([char]92, '/')"
+	)
+	expect_eq 'the PowerShell function moves to the folder git sb names' "$tmp/kept" "${ps_cd//$'\r'/}"
 fi
 
 # --- the installer ----------------------------------------------------------
