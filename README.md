@@ -25,7 +25,7 @@ Both installers do these steps:
   [The reason](#why-git-sb-needs-a-shell-function).
 - **Hooks** set `core.hooksPath` to [hooks/](hooks), so each commit here runs
   the lint.
-- **Check** warn when git is older than 2.22, then run `git a` to prove the
+- **Check** warn when git is older than 2.36, then run `git a` to prove the
   install worked.
 
 ### macOS and Linux
