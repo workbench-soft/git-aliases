@@ -164,11 +164,12 @@ default branch comes from `<remote>/HEAD`, then `master`, then `main`. When
 ## Checks
 
 ```sh
-./lint.sh   # shape: comments, alias lines, README rows, shell style
-./test.sh   # behaviour: every alias against a throwaway repo
+mise install     # the pinned shellcheck, shfmt, oxfmt and markdownlint-cli2
+mise run lint    # lint.sh, oxfmt --check and markdownlint-cli2, as CI runs them
+./test.sh        # behaviour: every alias against a throwaway repo
 ```
 
-On Windows, run both from Git Bash.
+On Windows, run them from Git Bash.
 
 `lint.sh` fails when a script:
 
@@ -181,20 +182,20 @@ NTFS has no exec bit, so on Windows `lint.sh` reads the mode git stored.
 
 With [shellcheck](https://www.shellcheck.net) and
 [shfmt](https://github.com/mvdan/sh) installed, `lint.sh` runs them too. With
-PowerShell installed, it parses the `.ps1` files. To install the tools and fix
-the formatting:
+PowerShell installed, it parses the `.ps1` files. To fix the formatting of the
+shell scripts and the Markdown:
 
 ```sh
-mise install
-mise x -- shfmt --write --case-indent bin/* ./*.sh hooks/*
+mise run format
 ```
 
 `test.sh` builds a repo and a `HOME` in a temp folder. It commits, pushes and
 resets for real there, and your own files stay untouched. On Windows it skips
 the folder name with a tab and a newline, since NTFS rejects it.
 
-`install.sh` sets `core.hooksPath` to [hooks/](hooks), so the lint runs before
-each commit. GitHub Actions runs both checks on each push to main. Once they
+`install.sh` sets `core.hooksPath` to [hooks/](hooks), so `lint.sh`, oxfmt and
+markdownlint-cli2 run before each commit. GitHub Actions runs the same checks,
+plus `test.sh` on Windows, on each push to main and each PR. Once they
 pass, the Release workflow tags the commit as a release such as
 `v2026.10.30.1`. Its notes on the [Releases page](https://github.com/workbench-soft/git-aliases/releases)
 list the commits since the release before.
