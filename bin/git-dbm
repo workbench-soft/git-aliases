@@ -7,8 +7,11 @@ set -euo pipefail
 . "$(dirname "$0")/_prune.sh"
 
 # After the prune, git marks a branch whose remote branch is deleted as [gone].
-# --all prunes each remote, so a branch that tracks a second remote counts too.
-trace_run git fetch --all --prune
+# Each remote gets pruned, so a branch that tracks a second remote counts too.
+# One remote out of reach keeps only its own gone branches.
+while IFS= read -r remote; do
+	trace_run git fetch --prune "$remote" || report_warning "could not fetch $remote, its gone branches stay"
+done < <(git remote)
 
 read_worktrees
 doomed=$(prune_candidates gone)
