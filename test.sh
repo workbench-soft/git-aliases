@@ -536,6 +536,26 @@ if [[ $on_windows == yes ]] && command -v powershell >/dev/null 2>&1; then
 		powershell -NoProfile -Command ". '$ps1_wrapper'; git sb 2>\$null; (Get-Location).Path.Replace([char]92, '/')"
 	)
 	expect_eq 'the PowerShell function moves to the folder git sb names' "$tmp/kept" "${ps_cd//$'\r'/}"
+
+	# Windows PowerShell reads git output in the console code page unless told otherwise.
+	git worktree add -q -b far-away "$tmp/Папка"
+	: >"$tmp/Папка/ps-marker.txt"
+	mkdir -p "$tmp/fzf-bin"
+	printf '#!/bin/sh\ngrep -m 1 "^far-away "\n' >"$tmp/fzf-bin/fzf"
+	chmod +x "$tmp/fzf-bin/fzf"
+	cat >"$tmp/sb.ps1" <<EOF
+\$env:PATH = '$(cygpath -w "$tmp/fzf-bin");' + \$env:PATH
+. '$(cygpath -w "$repo/shell/git-sb.ps1")'
+git sb *> \$null
+Test-Path -LiteralPath ps-marker.txt
+EOF
+	ps_out=$(
+		unset -f fzf
+		powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$tmp/sb.ps1")" 2>&1
+	)
+	expect_eq 'git sb in PowerShell goes to a folder with a non-ASCII name' True "${ps_out//$'\r'/}"
+	git worktree remove --force "$tmp/Папка"
+	git branch -q -D far-away
 fi
 
 # --- the installer ----------------------------------------------------------
