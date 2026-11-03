@@ -1,18 +1,38 @@
 #!/usr/bin/env bash
 # install.sh sets core.hooksPath to this folder, so each commit passes the
-# checks CI runs: lint.sh, then oxfmt and markdownlint-cli2 when installed.
+# checks CI runs: lint.sh, then oxfmt and markdownlint-cli2 when they run here.
 set -euo pipefail
 
-# mise.toml pins both tools, so `mise install` puts them on PATH.
-run_if_installed() {
-	if command -v "$1" >/dev/null 2>&1; then
-		"$@"
-	else
-		echo "skipped $1 (not installed: mise install)"
+# A mise shim sits on PATH even where mise.toml isn't trusted, so the tool has
+# to run once on no files before the hook counts on it.
+runs() {
+	if "$@" >/dev/null 2>&1; then
+		return 0
 	fi
+	echo "skipped $1 (it doesn't run here: mise trust && mise install)"
+	return 1
 }
 
 cd "$(git rev-parse --show-toplevel)"
 ./lint.sh
-run_if_installed oxfmt --check
-run_if_installed markdownlint-cli2
+
+# Only the staged files count, so a scratch file or an unstaged edit can't
+# block the commit.
+staged=()
+while IFS= read -r -d '' file; do
+	staged+=("$file")
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+((${#staged[@]})) || exit 0
+
+markdown=()
+for file in "${staged[@]}"; do
+	[[ $file == *.md ]] && markdown+=("$file")
+done
+
+if runs oxfmt --version; then
+	oxfmt --check --no-error-on-unmatched-pattern "${staged[@]}"
+fi
+# --no-globs keeps the config from adding every Markdown file in the tree.
+if ((${#markdown[@]})) && runs markdownlint-cli2 --no-globs; then
+	markdownlint-cli2 --no-globs "${markdown[@]}"
+fi
