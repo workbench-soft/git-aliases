@@ -9,7 +9,8 @@
 function git {
 	$gitExe = Get-Command git -CommandType Application | Select-Object -First 1
 	if ($args.Count -eq 0 -or $args[0] -ne 'sb') {
-		& $gitExe @args
+		# A pipe, such as Get-Content x.patch | git apply, reaches git only through $input.
+		if ($MyInvocation.ExpectingInput) { $input | & $gitExe @args } else { & $gitExe @args }
 		return
 	}
 

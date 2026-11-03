@@ -490,6 +490,15 @@ expect_in 'git sb marks the branch of this worktree' '(this worktree)' "$(<"$tmp
 expect_eq 'git sb leaves colour out of its menu under NO_COLOR' '' "$(grep -F $'\033' "$tmp/menu" || true)"
 expect_eq 'the fzf preview leaves colour out under NO_COLOR' '' "$(bash -c "${log_preview//\{1\}/main}" | grep -F $'\033' || true)"
 
+# --- the PowerShell function ------------------------------------------------
+
+if [[ $on_windows == yes ]] && command -v powershell >/dev/null 2>&1; then
+	ps1_wrapper=$(cygpath -w "$repo/shell/git-sb.ps1")
+	# The function wraps every git call, so a pipe into git has to reach git.
+	ps_out=$(powershell -NoProfile -Command ". '$ps1_wrapper'; \$direct = 'piped' | git.exe hash-object --stdin; \$wrapped = 'piped' | git hash-object --stdin; \"\$direct \$wrapped\"")
+	expect_eq 'the PowerShell git function hands a pipe on to git' "${ps_out%% *} ${ps_out%% *}" "${ps_out//$'\r'/}"
+fi
+
 # --- the installer ----------------------------------------------------------
 
 # Git Bash spells HOME as /c/Users/..., so the scratch HOME does too.
