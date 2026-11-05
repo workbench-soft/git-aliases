@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Parallel release builds** releases build beside checks after a push. Only publication waits for matching checks; open PRs hold no build.
+
 - **git p, git co, git master** fetch the branch even when a tag has the same name, and git co works in a `--single-branch` clone.
 - **git dbm** prunes every remote, so a branch gone from a fork remote shows up too. A remote out of reach gets a warning, and the rest go on.
 - **PowerShell** the `git` function passes piped input on to git, so `Get-Content x.patch | git apply` works.
