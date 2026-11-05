@@ -216,3 +216,7 @@ PowerShell takes the same commands. Then:
 ## License
 
 [MIT](LICENSE).
+
+## Release build timing
+
+Release builds MUST start on pushes alongside their matching checks. Publication MUST wait for successful checks of the same commit and branch. Open PRs MUST NOT delay the build. LocalCI MUST record the causing run, commit and PR before cancelling a replaced build or a release whose checks failed.

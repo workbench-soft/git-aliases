@@ -147,3 +147,7 @@ sequenceDiagram
   - **The Windows PC runner** a public repo would run outside code from PRs
     on the PC.
 - **Cost to undo** low. The `runs-on` lines.
+
+## Release build timing
+
+Release builds MUST start on pushes alongside their matching checks. Publication MUST wait for successful checks of the same commit and branch. Open PRs MUST NOT delay the build. LocalCI MUST record the causing run, commit and PR before cancelling a replaced build or a release whose checks failed.
