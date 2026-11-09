@@ -6,7 +6,7 @@ on:
   # The repo is public, so PRs from outside get checked too.
   pull_request:
 
-# A new push to the same branch or PR stops the older run.
+# The local-ci page cancels an older run and logs why, so the workflow sets no concurrency.
 
 # A PR from a fork gets a read-only token.
 permissions:
