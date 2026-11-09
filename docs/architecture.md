@@ -125,8 +125,8 @@ sequenceDiagram
 
 - **Picked** `lint.sh` runs shellcheck and shfmt and checks the repo rules:
   each alias has a script, a description and a README row. `test.sh` runs
-  the aliases on scratch repos. `core.hooksPath` runs the lint on each
-  commit.
+  the aliases on scratch repos. `core.hooksPath` runs `lint.sh`, oxfmt and markdownlint-cli2 on each
+  commit, as CI does.
 - **Why** the rules drift without a check, and a hook catches it before the
   push.
 - **Trade-off** `test.sh` expects Git for Windows paths, so on Linux it stops

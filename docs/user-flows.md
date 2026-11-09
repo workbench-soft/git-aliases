@@ -67,7 +67,8 @@ flowchart TD
 1. The person runs `git master`.
 2. The alias stops when another worktree holds the default branch.
 3. It lists commits the remote lacks and local changes, with a question each.
-4. It checks out the default branch and resets it to the remote.
+4. On a detached HEAD, it lists the commits no branch holds and asks before it drops them.
+5. It checks out the default branch and resets it to the remote.
 
 ```mermaid
 flowchart TD
@@ -76,8 +77,12 @@ flowchart TD
   held -- no --> fetch["git fetch"]
   fetch --> ahead{"local commits the remote lacks?"}
   ahead -- yes --> q1["ask"]
-  ahead -- no --> dirty
-  q1 -- yes --> dirty{"local changes?"}
+  ahead -- no --> detached
+  q1 -- yes --> detached{"detached HEAD with stray commits?"}
+  detached -- yes --> q3["ask"]
+  q3 -- no --> stop2
+  q3 -- yes --> dirty
+  detached -- no --> dirty{"local changes?"}
   q1 -- no --> stop2["stop"]
   dirty -- yes --> q2["ask, then drop them"]
   dirty -- no --> reset["checkout and hard reset"]
@@ -92,7 +97,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  dbm["git dbm"] --> prune["git fetch --all --prune"]
+  dbm["git dbm"] --> prune["git fetch --prune, per remote"]
   prune --> gone["branches whose upstream is gone"]
   db["git db"] --> fzf["fzf multi-pick"]
   gone --> del["delete clean worktrees and branches"]

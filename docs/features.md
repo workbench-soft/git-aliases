@@ -14,7 +14,7 @@ Spec: [git-aliases](../specs/git-aliases.md).
 
 - **What it gives** `git master` (also `git m`, `git main`) fetches and hard resets to the default branch of the remote.
 - **Where** run it in any worktree.
-- **Limits** it asks before it drops local changes or commits the remote lacks. It stops when another worktree holds the default branch.
+- **Limits** it asks before it drops local changes, commits the remote lacks, or commits on a detached HEAD that no branch holds. It stops when another worktree holds the default branch, or when the branch name starts with a dash.
 
 Spec: [git-aliases](../specs/git-aliases.md).
 
@@ -27,9 +27,9 @@ Spec: [git-aliases](../specs/git-aliases.md).
 
 ## Delete branches and worktrees
 
-- **What it gives** `git db` picks branches and worktrees in fzf and deletes them. `git dbm` deletes the ones whose remote branch is gone.
+- **What it gives** `git db` picks branches and worktrees in fzf and deletes them. `git dbm` prunes each remote, then deletes the ones whose remote branch is gone.
 - **Where** the [README section](../README.md#deleting-branches-and-worktrees) lists what stays.
-- **Limits** a worktree with changes gets a question first. The main worktree, the current one and locked ones stay.
+- **Limits** a worktree with changes gets a question first. The main worktree, the current one and locked ones stay. A remote out of reach keeps its own gone branches, with a warning.
 
 Spec: [delete-branches-and-worktrees](../specs/delete-branches-and-worktrees.md).
 
