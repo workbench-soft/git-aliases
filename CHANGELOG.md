@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **CI** Release starts on `workflow_run` once Checks pass on `main`, one at a time. It no longer holds a PC runner while it waits, which starved Checks and timed releases out.
+
 - **Parallel release builds** releases build beside checks after a push. Only publication waits for matching checks; open PRs hold no build.
 - **CI** the Release workflow follows the `repo-ci` template: `gh release create` makes the tag, so a failed publish leaves no stray tag. Stale comments and the agent rules pasted into the docs are gone.
 

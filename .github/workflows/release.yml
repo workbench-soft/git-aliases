@@ -1,20 +1,25 @@
 name: Release
 
 # Each push to main gets a release once its lint run passes. The version is the date: 2026.10.30.1, then 2026.10.30.2.
-# The release starts beside lint, and only publication waits for it. It carries notes only, since the repo builds no file to ship.
+# Release starts once lint pass on main, so no job holds a runner while it waits.
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: [lint]
+    types: [completed]
+  # A run by hand ships main again, once its lint passed. The local-ci page starts it this way.
   workflow_dispatch:
 
+# One release at a time. A newer run waiting here replaces an older waiting one, and ships its commits too.
+concurrency:
+  group: release
+
 permissions:
-  # wait-for-checks.sh reads the lint runs of the commit.
   actions: read
   contents: write
 
 env:
   GH_TOKEN: ${{ github.token }}
-  SHA: ${{ github.sha }}
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 # Windows runs steps in PowerShell unless told otherwise.
 defaults:
@@ -23,8 +28,13 @@ defaults:
 
 jobs:
   release:
-    # A run by hand from another branch would tag a commit no check passed, so it releases main only.
-    if: github.ref == 'refs/heads/main'
+    # Only lint that passed on a push to main of this repo, or a run by hand on main, start it.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      contains(fromJSON('["push","workflow_dispatch"]'), github.event.workflow_run.event))
     # The repo is public, so a GitHub runner costs 0 minutes and fork code stays off the PC.
     runs-on: ubuntu-latest
     steps:
@@ -34,14 +44,21 @@ jobs:
           # The release notes and the next version need every earlier tag and commit.
           fetch-depth: 0
 
+      # A run by hand looks up lint of the commit once and stops unless they passed. It doesn't wait.
+      - name: Check that lint passed on this commit
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          CHECKS_WORKFLOW: lint.yml
+        run: |
+          result=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$CHECKS_WORKFLOW/runs?head_sha=$SHA&branch=main&per_page=1" --jq '.workflow_runs[0].conclusion // "missing"')
+          if [ "$result" != success ]; then
+            echo "::error::lint of $SHA: $result. Run lint on main, and this follows once they pass."
+            exit 1
+          fi
+
       - name: Pick the next version
         id: version
         run: echo "tag=v$(.github/scripts/next-version.sh)" >> "$GITHUB_OUTPUT"
-
-      - name: Wait for the lint run of this commit
-        env:
-          CHECKS_WORKFLOW: lint.yml
-        run: .github/scripts/wait-for-checks.sh
 
       # gh release create makes the tag with the release, so a cancel leaves no tag without a release.
       # Two releases side by side can pick the same version. The later one then fails, and the next push ships its commits.
