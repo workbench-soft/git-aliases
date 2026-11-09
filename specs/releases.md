@@ -37,3 +37,9 @@ release before, so a reader sees what changed without reading the log.
   `repo-ci` templates. `.gitattributes` keeps LF endings on `*.sh`.
 - **Steps** this spec, then the workflow and scripts, then the docs.
 - **Docs** `README.md`, `CHANGELOG.md`, `docs/features.md` and `docs/architecture.md`.
+
+### 2026-11-09 week review
+
+- **Why** the parallel release change left stale comments, a tag pushed before its release and agent rules in the docs.
+- **Changes** `release.yml` follows the `repo-ci` template, `wait-for-checks.sh` gets its run bit, and the pasted "Release build timing" sections go.
+- **Docs** `README.md`, `docs/architecture.md`, `docs/user-flows.md`, `CHANGELOG.md`.

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Parallel release builds** releases build beside checks after a push. Only publication waits for matching checks; open PRs hold no build.
+- **CI** the Release workflow follows the `repo-ci` template: `gh release create` makes the tag, so a failed publish leaves no stray tag. Stale comments and the agent rules pasted into the docs are gone.
 
 - **git p, git co, git master** fetch the branch even when a tag has the same name, and git co works in a `--single-branch` clone.
 - **git dbm** prunes every remote, so a branch gone from a fork remote shows up too. A remote out of reach gets a warning, and the rest go on.

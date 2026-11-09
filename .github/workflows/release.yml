@@ -1,21 +1,19 @@
 name: Release
 
-# Each push to main whose lint run passes gets a release. The version is the date: 2026.10.30.1, then 2026.10.30.2.
-
-# The release carries notes only, since the repo builds no file to ship.
+# Each push to main gets a release once its lint run passes. The version is the date: 2026.10.30.1, then 2026.10.30.2.
+# The release starts beside lint, and only publication waits for it. It carries notes only, since the repo builds no file to ship.
 on:
   push:
     branches: [main]
-  # The repo is public, so PRs from outside get checked too.
   workflow_dispatch:
 
 permissions:
+  # wait-for-checks.sh reads the lint runs of the commit.
   actions: read
   contents: write
 
 env:
   GH_TOKEN: ${{ github.token }}
-
   SHA: ${{ github.sha }}
 
 # Windows runs steps in PowerShell unless told otherwise.
@@ -25,8 +23,8 @@ defaults:
 
 jobs:
   release:
+    # A run by hand from another branch would tag a commit no check passed, so it releases main only.
     if: github.ref == 'refs/heads/main'
-
     # The repo is public, so a GitHub runner costs 0 minutes and fork code stays off the PC.
     runs-on: ubuntu-latest
     steps:
@@ -40,20 +38,16 @@ jobs:
         id: version
         run: echo "tag=v$(.github/scripts/next-version.sh)" >> "$GITHUB_OUTPUT"
 
-      # A tag pushed with the workflow token doesn't start other workflows.
-      - name: Wait for matching checks before publication
-        shell: bash
-        working-directory: ${{ github.workspace }}
+      - name: Wait for the lint run of this commit
         env:
-          GH_TOKEN: ${{ github.token }}
           CHECKS_WORKFLOW: lint.yml
-        run: bash .github/scripts/wait-for-checks.sh
+        run: .github/scripts/wait-for-checks.sh
 
+      # gh release create makes the tag with the release, so a cancel leaves no tag without a release.
+      # Two releases side by side can pick the same version. The later one then fails, and the next push ships its commits.
       - name: Tag the commit and publish the release
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           .github/scripts/release-notes.sh "$TAG" > "$RUNNER_TEMP/notes.md"
-          git tag "$TAG" "$SHA"
-          git push origin "$TAG"
-          gh release create "$TAG" --verify-tag --notes-file "$RUNNER_TEMP/notes.md" --title "$TAG"
+          gh release create "$TAG" --target "$SHA" --notes-file "$RUNNER_TEMP/notes.md" --title "$TAG"
