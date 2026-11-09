@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- **CI** Release starts on `workflow_run` once Checks pass on `main`, one at a time. It no longer holds a PC runner while it waits, which starved Checks and timed releases out.
+- **Docs** the features, flows and README describe the detached HEAD question of `git master`, the prune per remote of `git dbm`, the hook checks and the `workflow_run` release.
+
+- **CI** Release starts on `workflow_run` once lint passes on `main`, one at a time. No job holds a runner while it waits.
 
 - **Parallel release builds** releases build beside checks after a push. Only publication waits for matching checks; open PRs hold no build.
 - **CI** the Release workflow follows the `repo-ci` template: `gh release create` makes the tag, so a failed publish leaves no stray tag. Stale comments and the agent rules pasted into the docs are gone.

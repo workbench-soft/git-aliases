@@ -76,3 +76,11 @@ Everyday git commands needed too much typing. Short aliases replace them, and a 
 - **Steps** 1. this entry. 2. stop early when another worktree holds the
   branch. 3. ask before dropping commits.
 - **Docs** the `master` row in `README.md`, `CHANGELOG.md`.
+
+### 2026-11-10 Docs catch up with the app audits
+
+The audits of 2026-11-02 and 2026-11-03 changed what `git master` asks and how the hook checks a commit. The docs still showed the old behaviour.
+
+- **`git master`** on a detached HEAD it lists the commits no branch holds and asks before it drops them. A branch name that starts with a dash stops it, since git would read the name as an option. The fetch uses the full refspec, so a tag of the same name can't stand in for the branch.
+- **Hook** `hooks/pre-commit` runs `lint.sh`, oxfmt and markdownlint-cli2, as CI does. A tool that doesn't run in the clone yet gets skipped with a hint.
+- **Docs** `docs/features.md`, `docs/user-flows.md`, `docs/architecture.md` and `README.md`.

@@ -14,8 +14,8 @@ release before, so a reader sees what changed without reading the log.
 
 ## How it works
 
-- **`.github/workflows/release.yml`** starts when `lint.yml` finishes on a
-  push to `main`. It runs on `ubuntu-latest`. The repo is public, so GitHub runners cost 0 minutes and fork code stays off the PC.
+- **`.github/workflows/release.yml`** starts on `workflow_run` once `lint.yml` passes on a
+  push to `main`. One release runs at a time. It runs on `ubuntu-latest`. The repo is public, so GitHub runners cost 0 minutes and fork code stays off the PC.
 - **`.github/scripts/next-version.sh`** picks the tag: the date, then the
   number of the release that day.
 - **`.github/scripts/release-notes.sh`** writes the notes from the commits
@@ -25,7 +25,7 @@ release before, so a reader sees what changed without reading the log.
 
 - **Notes only** the repo builds no file, so the release carries none.
 - **Failed check** a red `lint` run or a PR run starts no release.
-- **Matrix** the release waits for both the Linux and the Windows job of `lint`.
+- **Matrix** the release starts only once both the Linux and the Windows job of `lint` pass.
 
 ## Changes
 
@@ -43,3 +43,8 @@ release before, so a reader sees what changed without reading the log.
 - **Why** the parallel release change left stale comments, a tag pushed before its release and agent rules in the docs.
 - **Changes** `release.yml` follows the `repo-ci` template, `wait-for-checks.sh` gets its run bit, and the pasted "Release build timing" sections go.
 - **Docs** `README.md`, `docs/architecture.md`, `docs/user-flows.md`, `CHANGELOG.md`.
+
+### 2026-11-10 Release starts on workflow_run
+
+- **Why** f7cd252 moved Release from a push run that waited for lint to `workflow_run` of lint, so no job holds a runner while it waits.
+- **Docs** the top of this spec and the README describe the `workflow_run` start.

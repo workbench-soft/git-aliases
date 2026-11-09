@@ -52,3 +52,9 @@ A deleted branch used to leave its worktree folder on disk. The delete aliases n
 
 - `AGENTS.md`
 - `README.md`
+
+### 2026-11-10 `git dbm` prunes each remote
+
+- **Why** the 2026-11-03 audit made `git dbm` prune every remote, so a branch that tracks a second remote counts too. The docs still showed `git fetch --all --prune`.
+- **Changes** `bin/git-dbm` runs `git fetch --prune <remote>` per remote. A remote out of reach keeps only its own gone branches, with a warning.
+- **Docs** `docs/features.md` and `docs/user-flows.md`.
