@@ -112,7 +112,7 @@ check_scripts() {
 		! is_executable "$helper" || problem "$helper: sourced, not run, so it should not be executable"
 	done
 
-	for entry in install.sh lint.sh test.sh hooks/pre-commit; do
+	for entry in install.sh lint.sh test.sh hooks/pre-commit hooks/pre-push; do
 		is_executable "$entry" || problem "$entry: not executable, $chmod_hint"
 	done
 }

@@ -194,7 +194,7 @@ resets for real there, and your own files stay untouched. On Windows it skips
 the folder name with a tab and a newline, since NTFS rejects it.
 
 `install.sh` sets `core.hooksPath` to [hooks/](hooks), so `lint.sh`, oxfmt and
-markdownlint-cli2 run before each commit. The hook skips a tool that doesn't
+markdownlint-cli2 run before each commit, and `mise run lint` before each push. The commit hook skips a tool that doesn't
 run in the clone yet, until `mise trust && mise install`. GitHub Actions runs
 the same checks, plus `test.sh` on Windows, on each push to main and each PR.
 Release starts on `workflow_run` once lint passes on main. It tags the commit as a release such as

@@ -18,7 +18,7 @@ main() {
 	echo "Installing from $repo"
 	echo
 	warn_old_git
-	chmod +x "$repo"/bin/git-* "$repo/lint.sh" "$repo/hooks/pre-commit"
+	chmod +x "$repo"/bin/git-* "$repo/lint.sh" "$repo/hooks/pre-commit" "$repo/hooks/pre-push"
 	offer_alias_cleanup
 	link_aliases
 	offer_zsh_wrapper
