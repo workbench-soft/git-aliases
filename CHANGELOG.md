@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **git a** the list stays on the screen after `q`, and a list that fits the screen prints without a pager, as `git log` does.
 - **git r** `-c` fetches the remote the upstream sits on, so a fork branch that tracks the original rebases onto its newest commits. `git r <branch>` works in a `--single-branch` clone.
 
 - **Lint before the push** `hooks/pre-push` runs `mise run lint`, so a lint or format error stays on the PC instead of failing Checks on `main`.
