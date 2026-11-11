@@ -10,7 +10,9 @@ index="$repo/aliases.gitconfig"
 
 main() {
 	if [[ -t 1 ]] && command -v less >/dev/null 2>&1; then
-		print_aliases | less -R
+		# Git pages with LESS=FRX when LESS is unset. Without X the list leaves the
+		# screen on q, and without F a short list waits for a q.
+		print_aliases | LESS=${LESS-FRX} less -R
 	else
 		print_aliases
 	fi

@@ -2,3 +2,8 @@
 * text=auto eol=lf
 # The release scripts run in sh, which fails on CRLF ends.
 *.sh text eol=lf
+# Sessions add lines to these side by side, so a merge keeps both sides.
+CHANGELOG.md merge=union
+TODO.md merge=union
+docs/features.md merge=union
+docs/user-flows.md merge=union

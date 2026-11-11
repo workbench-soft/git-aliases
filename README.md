@@ -195,7 +195,7 @@ the folder name with a tab and a newline, since NTFS rejects it.
 
 `install.sh` sets `core.hooksPath` to [hooks/](hooks), so `lint.sh`, oxfmt and
 markdownlint-cli2 run before each commit, and `mise run lint` before each push. The commit hook skips a tool that doesn't
-run in the clone yet, until `mise trust && mise install`. GitHub Actions runs
+run in the clone yet, until `mise trust && mise install`. The push hook skips the lint when mise isn't installed. GitHub Actions runs
 the same checks, plus `test.sh` on Windows, on each push to main and each PR.
 Release starts on `workflow_run` once lint passes on main. It tags the commit as a release such as
 `v2026.10.30.1`. Its notes on the [Releases page](https://github.com/workbench-soft/git-aliases/releases)

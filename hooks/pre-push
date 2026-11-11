@@ -3,4 +3,9 @@
 # This runs the same lint first and refuses the push when it fails.
 # Agents push with CI=1, so only a GitHub runner skips it.
 [ -n "$GITHUB_ACTIONS" ] && exit 0
+# Like the commit hook, a clone without mise pushes with a note instead of a block.
+if ! command -v mise >/dev/null 2>&1; then
+	echo 'skipped mise run lint (mise is not installed)'
+	exit 0
+fi
 mise run lint || exit 1

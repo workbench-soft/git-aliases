@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Push hook** a clone without mise pushes with a note, as the commit hook skips its missing tools.
+- **git a** the list stays on the screen after `q`, and a list that fits the screen prints without a pager, as `git log` does.
+- **git r** `-c` fetches the remote the upstream sits on, so a fork branch that tracks the original rebases onto its newest commits. `git r <branch>` works in a `--single-branch` clone.
+
 - **Lint before the push** `hooks/pre-push` runs `mise run lint`, so a lint or format error stays on the PC instead of failing Checks on `main`.
 
 - **Docs** the features, flows and README describe the detached HEAD question of `git master`, the prune per remote of `git dbm`, the hook checks and the `workflow_run` release.

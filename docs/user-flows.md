@@ -22,7 +22,7 @@ flowchart TD
 ## Look up an alias
 
 1. The person runs `git a`.
-2. The list opens in `less`, one alias per entry with its description.
+2. The list opens in `less`, one alias per entry with its description. It stays on the screen after `q`.
 3. An alias run with `-h`, or with its arguments missing, prints its usage.
 
 ```mermaid
