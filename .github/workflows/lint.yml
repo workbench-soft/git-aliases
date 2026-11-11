@@ -6,7 +6,11 @@ on:
   # The repo is public, so PRs from outside get checked too.
   pull_request:
 
-# The local-ci page cancels an older run and logs why, so the workflow sets no concurrency.
+# A newer push to the same branch or PR cancels this run on GitHub's side.
+# The local-ci page cancels the runs GitHub leaves, such as those of a merged PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 # A PR from a fork gets a read-only token.
 permissions:
