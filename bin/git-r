@@ -14,19 +14,30 @@ flag_help=(
 
 case ${1:-} in
 	-h | --help) show_usage "$synopsis" "${flag_help[@]}" ;;
-esac
-
-remote=$(pick_remote)
-
-case ${1:-} in
-	-c) onto='@{u}' ;;
-	'') onto="$remote/$(remote_head_branch "$remote")" ;;
+	-c)
+		# A bare fetch reads the remote of the current branch, so an upstream on
+		# a second remote, such as the original of a fork, comes in fresh.
+		trace_run git fetch
+		trace_run git rebase '@{u}'
+		exit 0
+		;;
 	-*)
 		printf 'unknown flag: %s\n\n' "$1" >&2
 		show_usage "$synopsis" "${flag_help[@]}"
 		;;
-	*) onto="$remote/$1" ;;
 esac
 
-trace_run git fetch "$remote"
-trace_run git rebase "$onto"
+remote=$(pick_remote)
+
+if [[ -z ${1:-} ]]; then
+	# A failed lookup ends the script only from an assignment, so it comes first.
+	default_branch=$(remote_head_branch "$remote")
+	trace_run git fetch "$remote"
+	trace_run git rebase "$remote/$default_branch"
+	exit 0
+fi
+
+# The full refspec fills $remote/<branch> even in a clone made with
+# --single-branch, and a tag of the same name can't stand in for it.
+trace_run git fetch "$remote" "+refs/heads/$1:refs/remotes/$remote/$1"
+trace_run git rebase "$remote/$1"

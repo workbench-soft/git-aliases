@@ -217,6 +217,21 @@ push_upstream_commit 'upstream for git r'
 git r >/dev/null 2>&1
 expect_eq 'git r fetches and rebases onto the default branch' 'upstream for git r' "$(git log -1 --format=%s)"
 
+git -C "$tmp/elsewhere" push -q origin main:refs/heads/side-for-r
+git -C "$tmp/single" r side-for-r >/dev/null 2>&1 || true
+expect_eq 'git r fetches the branch a --single-branch clone lacks' 'upstream for git r' "$(git -C "$tmp/single" log -1 --skip=1 --format=%s)"
+
+# A fork: origin is the copy, and the branch tracks main of the original.
+git init -q --bare "$tmp/fork.git"
+git clone -q "$tmp/origin.git" "$tmp/fork" 2>/dev/null
+git -C "$tmp/fork" remote rename origin upstream
+git -C "$tmp/fork" remote add origin "$tmp/fork.git"
+git -C "$tmp/fork" checkout -q -b fork-work --track upstream/main
+git -C "$tmp/fork" commit -q --allow-empty -m 'fork work'
+push_upstream_commit 'upstream for git r -c'
+git -C "$tmp/fork" r -c >/dev/null 2>&1 || true
+expect_eq 'git r -c fetches the remote of the upstream' 'upstream for git r -c' "$(git -C "$tmp/fork" log -1 --skip=1 --format=%s)"
+
 push_upstream_commit 'upstream for git p'
 git p >/dev/null 2>&1
 expect_eq 'git p pulls the new commit of the remote branch' 'upstream for git p' "$(git log -1 --format=%s)"
