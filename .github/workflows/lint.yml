@@ -38,7 +38,7 @@ jobs:
           persist-credentials: false
       # mise.toml pins shellcheck, shfmt and oxfmt, so CI lints with the local versions.
       - name: Install shfmt, shellcheck and oxfmt
-        uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           # Without a pin the action takes the newest mise, and a newer mise once broke the oxfmt install.
           version: 2026.10.25
