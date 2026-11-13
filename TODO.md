@@ -23,8 +23,3 @@
 - Left: `git a | head` on Windows prints an awk "print to standard output failed" line once head closes the pipe. Display only.
 - Left: `git srmb` reads the last fetched default branch. A fetch would add a network call to a local reset.
 - Left: the commit hook checks the working copy of each staged file, so an unstaged edit in a staged file can still block the commit. The fix needs a temp index or a checkout of the staged blobs.
-- Hint for the Linux tests: a failing alias call in test.sh stops the run under `set -e` with exit 128 and no FAIL line. The calls that may fail need `|| true`.
-
-## ci/hosted-runner
-
-- [ ] **Linux tests** `test.sh` exits 1 with no FAIL line on the GitHub Ubuntu runner. CI runs it on Windows only until that is found.

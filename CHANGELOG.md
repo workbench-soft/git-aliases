@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Tests on Linux** `test.sh` runs on the Ubuntu runner too: it stubs fzf as a script on `PATH`, since dash drops an exported bash function.
+
 - **Older runs stop on GitHub** a newer push to `main` cancels the Checks and the release build of the older commit through `concurrency`, with the local-ci page off too.
 
 - **Push hook** a clone without mise pushes with a note, as the commit hook skips its missing tools.

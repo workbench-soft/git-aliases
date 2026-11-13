@@ -129,8 +129,8 @@ sequenceDiagram
   commit, as CI does.
 - **Why** the rules drift without a check, and a hook catches it before the
   push.
-- **Trade-off** `test.sh` expects Git for Windows paths, so on Linux it stops
-  early.
+- **Trade-off** git runs aliases through `/bin/sh`, and dash on Linux drops
+  an exported bash function, so `test.sh` stubs fzf as a script on `PATH`.
 - **Rejected**
   - **husky** the org's hook tool, but it needs Node and a `package.json`,
     and this repo has neither.

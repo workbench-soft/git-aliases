@@ -291,15 +291,18 @@ ask_yes() {
 	[[ ${answer_yes:-no} == yes ]]
 }
 
-# fzf saves the menu it got, then picks the lines whose branch is in $pick.
-fzf() {
-	local menu
-	menu=$(cat)
-	printf '%s\n' "$menu" >"$scratch/menu"
-	printf '%s\n' "$menu" | awk -F'\t' 'index("\n" ENVIRON["pick"] "\n", "\n" $1 "\n")'
-}
-export -f fzf
+# A stub fzf on PATH saves the menu it got, then picks the lines whose branch is in $pick.
+# Git runs aliases through /bin/sh, and dash on Linux drops an exported bash function.
 export scratch=$tmp
+mkdir -p "$tmp/fzf-db"
+cat >"$tmp/fzf-db/fzf" <<'EOF'
+#!/usr/bin/env bash
+menu=$(cat)
+printf '%s\n' "$menu" >"$scratch/menu"
+printf '%s\n' "$menu" | awk -F'\t' 'index("\n" ENVIRON["pick"] "\n", "\n" $1 "\n")'
+EOF
+chmod +x "$tmp/fzf-db/fzf"
+PATH=$(cd "$tmp/fzf-db" && pwd):$PATH
 
 git branch delete-plain
 # A tag of the same name makes git print the branch as heads/delete-plain.
@@ -518,18 +521,17 @@ expect_eq 'removing worktrees keeps the shared stash' "$stash_before" "$(git rev
 git branch --set-upstream-to=origin/main main >/dev/null
 git tag kept-worktree
 
-# fzf saves the menu it got, then picks the line that starts with $pick.
-sb_out=$(
-	# shellcheck disable=SC2329  # git sb calls it through export -f
-	fzf() {
-		local menu
-		menu=$(cat)
-		printf '%s\n' "$menu" >"$scratch/menu"
-		printf '%s\n' "$menu" | grep -m 1 "^$pick "
-	}
-	export -f fzf
-	pick=kept-worktree git sb 2>/dev/null
-)
+# A stub fzf on PATH saves the menu it got, then picks the line that starts with $pick.
+mkdir -p "$tmp/fzf-sb"
+cat >"$tmp/fzf-sb/fzf" <<'EOF'
+#!/usr/bin/env bash
+menu=$(cat)
+printf '%s\n' "$menu" >"$scratch/menu"
+printf '%s\n' "$menu" | grep -m 1 "^$pick "
+EOF
+chmod +x "$tmp/fzf-sb/fzf"
+sb_path=$(cd "$tmp/fzf-sb" && pwd):$PATH
+sb_out=$(PATH=$sb_path pick=kept-worktree git sb 2>/dev/null)
 expect_eq 'git sb prints the folder of a branch in another worktree' "__cd__ $tmp/kept" "$sb_out"
 expect_in 'git sb marks the branch of this worktree' '(this worktree)' "$(<"$tmp/menu")"
 expect_eq 'git sb leaves colour out of its menu under NO_COLOR' '' "$(grep -F $'\033' "$tmp/menu" || true)"
@@ -549,7 +551,6 @@ if [[ $on_windows == yes ]] && command -v powershell >/dev/null 2>&1; then
 	printf '#!/bin/sh\ngrep -m 1 "^kept-worktree "\n' >"$tmp/fzf-bin/fzf"
 	chmod +x "$tmp/fzf-bin/fzf"
 	ps_cd=$(
-		unset -f fzf
 		PATH=$(cd "$tmp/fzf-bin" && pwd):$PATH
 		powershell -NoProfile -Command ". '$ps1_wrapper'; git sb 2>\$null; (Get-Location).Path.Replace([char]92, '/')"
 	)
@@ -568,7 +569,6 @@ git sb *> \$null
 Test-Path -LiteralPath ps-marker.txt
 EOF
 	ps_out=$(
-		unset -f fzf
 		powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$tmp/sb.ps1")" 2>&1
 	)
 	expect_eq 'git sb in PowerShell goes to a folder with a non-ASCII name' True "${ps_out//$'\r'/}"
