@@ -58,3 +58,13 @@ A deleted branch used to leave its worktree folder on disk. The delete aliases n
 - **Why** the 2026-11-03 audit made `git dbm` prune every remote, so a branch that tracks a second remote counts too. The docs still showed `git fetch --all --prune`.
 - **Changes** `bin/git-dbm` runs `git fetch --prune <remote>` per remote. A remote out of reach keeps only its own gone branches, with a warning.
 - **Docs** `docs/features.md` and `docs/user-flows.md`.
+
+## 2026-11-17 Unpushed work and one call
+
+- **Why** 50 branches took 14.5 s one by one, and `-D` dropped commits that
+  sat on no remote without a word. The person picked both changes.
+- **Picked** `keep_unpushed` in `bin/_prune.sh` counts commits ahead of the
+  upstream, or on no remote when the branch never had one, and asks once. A
+  gone upstream counts as pushed, since a merged PR deletes its branch. Plain
+  branches then go in one `git branch -D`. Git deletes the rest when one fails,
+  so the alias names each branch still there or unknown to git.
