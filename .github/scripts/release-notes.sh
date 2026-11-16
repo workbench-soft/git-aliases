@@ -18,7 +18,7 @@ note() {
 	git log -1 --format='%s' "$1" | sed -E 's/^[a-z]+(\([^)]*\))?!?: //' |
 		awk -v sha="$(git rev-parse --short "$1")" '{ print "- " toupper(substr($0, 1, 1)) substr($0, 2) " (" sha ")" }'
 	git log -1 --format='%b' "$1" | awk '
-    /^(Co-authored-by|Signed-off-by):/ { next }
+    tolower($0) ~ /^(co-authored-by|signed-off-by):/ { next }
     /^[[:space:]]*$/ { if (seen) exit; next }
     { seen = 1; print "  " $0 }'
 }
@@ -31,12 +31,16 @@ section() {
 	echo
 }
 
-section 'New' '^[0-9a-f]+ feat(\([^)]*\))?!?: '
-section 'Fixes' '^[0-9a-f]+ fix(\([^)]*\))?!?: '
-section 'Faster' '^[0-9a-f]+ perf(\([^)]*\))?!?: '
+# A Conventional Commits type, or a plain subject that starts with the same word.
+new_re='feat(\([^)]*\))?!?: |Add '
+fix_re='fix(\([^)]*\))?!?: |Fix '
+perf_re='perf(\([^)]*\))?!?: |Faster |Speed up '
+section 'New' "^[0-9a-f]+ ($new_re)"
+section 'Fixes' "^[0-9a-f]+ ($fix_re)"
+section 'Faster' "^[0-9a-f]+ ($perf_re)"
 
 others=$(git log --reverse --no-merges --format='%H %s' "$range" |
-	grep -vE '^[0-9a-f]+ (feat|fix|perf)(\([^)]*\))?!?: ' | cut -d' ' -f2- || true)
+	grep -vE "^[0-9a-f]+ ($new_re|$fix_re|$perf_re)" | cut -d' ' -f2- || true)
 if [ -n "$others" ]; then
 	printf '<details><summary>Other changes</summary>\n\n'
 	echo "$others" | sed 's/^/- /'

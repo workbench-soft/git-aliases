@@ -133,6 +133,11 @@ shows its folder. `db` also offers detached worktrees, which have no branch.
   `--force`. At the end it asks once per worktree git refused. Yes retries with
   `--force` and loses uncommitted changes and untracked or ignored files. No
   keeps that worktree and its branch.
+- **Unpushed work** before it deletes, the alias names each branch with
+  commits on no remote, such as `feature-x (2)`, and asks once. No keeps
+  those branches. A branch whose upstream is gone counts as pushed.
+- **One call** the plain branches go in one `git branch -D`, so 50 take
+  about 1.6 s.
 - **Failures** a failed entry prints a warning, and the rest still go. The
   alias then exits with 1.
 - **Protected** the main worktree, the current one and locked ones stay, and

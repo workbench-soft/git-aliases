@@ -7,7 +7,8 @@ if [[ -z ${NO_COLOR:-} ]] && [[ -t 1 || -t 2 ]]; then
 	CLR_OFF=$'\033[0m'
 	CLR_COMMAND=$'\033[1;36m'
 	CLR_PROMPT=$'\033[1;33m'
-	CLR_FAINT=$'\033[38;5;240m'
+	# 244 gives about 5:1 on black, where 240 gave 3:1.
+	CLR_FAINT=$'\033[38;5;244m'
 	CLR_HINT=$'\033[38;5;220m'
 	log_colour=always
 else

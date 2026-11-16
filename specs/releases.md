@@ -19,7 +19,9 @@ release before, so a reader sees what changed without reading the log.
 - **`.github/scripts/next-version.sh`** picks the tag: the date, then the
   number of the release that day.
 - **`.github/scripts/release-notes.sh`** writes the notes from the commits
-  since the last tag.
+  since the last tag. A `feat:`, `fix:` or `perf:` subject, or a plain one
+  that starts with Add, Fix, Faster or Speed up, lands under New, Fixes or
+  Faster. The body drops `Co-authored-by` and `Signed-off-by` in any case.
 
 ## Limits
 

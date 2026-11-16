@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Safer, faster db and dbm** they ask once before deleting branches with commits on no remote, and delete plain branches in one call.
+- **Readable grey** faint text uses colour 244, about 5:1 on black.
+- **Release notes** plain subjects that start with Add, Fix, Faster or Speed up land under New, Fixes and Faster, and `Co-Authored-By` lines stay out.
+
 - **Tests on Linux** `test.sh` runs on the Ubuntu runner too: it stubs fzf as a script on `PATH`, since dash drops an exported bash function.
 
 - **Older runs stop on GitHub** a newer push to `main` cancels the Checks and the release build of the older commit through `concurrency`, with the local-ci page off too.

@@ -440,6 +440,24 @@ expect_eq 'one failed entry leaves the rest deleted' '' "$(git branch --list 'or
 expect_eq 'one failed entry makes the exit code 1' 1 "$code"
 expect_in 'the failed entry is named' 'branch retained: no-such-branch' "$(<"$tmp/out")"
 
+git branch unpushed-work
+local_only=$(git commit-tree -p unpushed-work -m 'local only' 'unpushed-work^{tree}')
+git update-ref refs/heads/unpushed-work "$local_only"
+git branch pushed-plain
+: >"$tmp/questions"
+answer_yes=no
+read_worktrees
+picked=$(prune_candidates all | awk -F'\t' '$1 == "unpushed-work" || $1 == "pushed-plain"')
+prune_selected "$picked" >"$tmp/out" 2>&1 || true
+expect_in 'a branch with commits on no remote gets one question' 'unpushed-work (1)' "$(<"$tmp/questions")"
+expect_eq 'a no keeps the branch with unpushed commits' 'unpushed-work' "$(git branch --list unpushed-work | tr -d ' *+')"
+expect_eq 'a no still deletes the pushed branch' '' "$(git branch --list pushed-plain)"
+answer_yes=yes
+read_worktrees
+picked=$(prune_candidates all | awk -F'\t' '$1 == "unpushed-work"')
+prune_selected "$picked" >"$tmp/out" 2>&1
+expect_eq 'a yes deletes the branch with unpushed commits' '' "$(git branch --list unpushed-work)"
+
 read_worktrees
 picked=$(prune_candidates all | awk -F'\t' '$3 ~ /^\[worktree detached\]/ || $1 == "delete-odd"')
 prune_selected "$picked" >"$tmp/out" 2>&1
