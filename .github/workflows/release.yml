@@ -44,6 +44,13 @@ jobs:
           # The release notes and the next version need every earlier tag and commit.
           fetch-depth: 0
 
+      # A push with no change outside Markdown and docs since the last tag cuts no release.
+      - name: Look for changes since the last release
+        id: affected
+        uses: workbench-soft/ci/actions/affected@main
+        with:
+          since: release
+
       # A run by hand looks up lint of the commit once and stops unless they passed. It doesn't wait.
       - name: Check that lint passed on this commit
         if: github.event_name == 'workflow_dispatch'
@@ -57,12 +64,14 @@ jobs:
           fi
 
       - name: Pick the next version
+        if: steps.affected.outputs.run == 'true'
         id: version
         run: echo "tag=v$(.github/scripts/next-version.sh)" >> "$GITHUB_OUTPUT"
 
       # gh release create makes the tag with the release, so a cancel leaves no tag without a release.
       # Two releases side by side can pick the same version. The later one then fails, and the next push ships its commits.
       - name: Tag the commit and publish the release
+        if: steps.affected.outputs.run == 'true'
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |

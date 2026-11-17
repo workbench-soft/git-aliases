@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **No release for docs** Release runs the shared `affected` step of `workbench-soft/ci` with `since: release`, so a push that changed only Markdown or `docs/` since the last tag cuts no release. Proof with `affected.ts --since release`: code commit `e85cebb` gives `run=true`, docs commit `b101951` gives `run=false`.
 - **Safer, faster db and dbm** they ask once before deleting branches with commits on no remote, and delete plain branches in one call.
 - **Readable grey** faint text uses colour 244, about 5:1 on black.
 - **Release notes** plain subjects that start with Add, Fix, Faster or Speed up land under New, Fixes and Faster, and `Co-Authored-By` lines stay out.
